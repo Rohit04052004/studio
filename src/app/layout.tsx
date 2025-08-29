@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import { Layout } from '@/components/layout/layout';
 
 export const metadata: Metadata = {
-  title: 'MedReport Clarity',
-  description: 'AI-powered medical report analysis',
+  title: 'MedReport',
+  description: 'Your AI-powered medical assistant',
 };
 
 export default function RootLayout({
@@ -14,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
@@ -23,8 +24,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={cn('font-body antialiased', 'min-h-screen bg-background font-sans')}>
-        {children}
+      <body className={cn('font-sans antialiased', 'min-h-screen bg-background')}>
+        <Layout>{children}</Layout>
         <Toaster />
       </body>
     </html>

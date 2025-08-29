@@ -11,7 +11,7 @@ import { AlertCircle, FileText } from 'lucide-react';
 // A simple markdown to HTML converter
 const HighlightedSummary = ({ content }: { content: string }) => {
   const htmlContent = content
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-accent-foreground font-semibold bg-accent/30 px-1 rounded">$1</strong>');
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary-foreground font-semibold bg-primary/30 px-1 rounded">$1</strong>');
 
   return <p className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
 };
@@ -69,8 +69,8 @@ export function ReportView({ report }: { report: Report | null }) {
             )}
           </ScrollArea>
         </div>
-        <div className="flex items-start space-x-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-yellow-800">
-          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-500" />
+        <div className="flex items-start space-x-2 rounded-lg border border-yellow-200/50 bg-yellow-950/30 p-3 text-yellow-200">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-400" />
           <p className="text-xs">
             <strong>Disclaimer:</strong> This AI analysis is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
           </p>
