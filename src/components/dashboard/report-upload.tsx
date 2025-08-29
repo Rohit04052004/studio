@@ -1,0 +1,132 @@
+'use client';
+
+import { useState, useTransition, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Upload, FileText, LoaderCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { processReportAction } from '@/app/actions';
+import type { Report } from '@/types';
+import { Button } from '../ui/button';
+
+interface ReportUploadProps {
+  onAddReport: (report: Omit<Report, 'id' | 'chatHistory'>) => void;
+}
+
+export function ReportUpload({ onAddReport }: ReportUploadProps) {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleFile = useCallback((file: File) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const dataUri = reader.result as string;
+      const textReader = new FileReader();
+      textReader.readAsText(file);
+      textReader.onload = () => {
+        const fileContent = textReader.result as string;
+        startTransition(async () => {
+          const result = await processReportAction(dataUri, file.type, fileContent);
+          if (result.success) {
+            onAddReport({
+              name: file.name,
+              type: file.type.startsWith('image/') ? 'image' : 'text',
+              content: file.type.startsWith('image/') ? dataUri : fileContent,
+              summary: result.summary!,
+              highlightedSummary: result.highlightedSummary!,
+              originalText: result.originalText,
+            });
+            toast({
+              title: 'Success',
+              description: 'Report analyzed successfully.',
+            });
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: result.error,
+            });
+          }
+        });
+      }
+    };
+  }, [onAddReport, toast]);
+
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Upload Report
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+              dragActive ? 'border-primary bg-accent/20' : 'border-border hover:border-primary/50'
+            }`}
+          >
+            <input
+              type="file"
+              id="file-upload"
+              className="absolute w-full h-full opacity-0 cursor-pointer"
+              onChange={handleChange}
+              accept="text/plain, image/png, image/jpeg, image/webp"
+              disabled={isPending}
+            />
+            {isPending ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                <p>Analyzing report...</p>
+              </div>
+            ) : (
+              <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                  <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                  <p className="mb-2 text-sm text-muted-foreground">
+                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-muted-foreground">TXT, PNG, JPG, or WEBP files</p>
+                </div>
+              </label>
+            )}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
