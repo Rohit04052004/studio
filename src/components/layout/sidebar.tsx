@@ -34,16 +34,15 @@ export function AppSidebar() {
         <SidebarMenu>
         {navItems.map((item) => (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href} passHref legacyBehavior>
-              <SidebarMenuButton 
-                  as="a"
-                  isActive={pathname === item.href}
-                  className="justify-start"
-              >
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.label}
-              </SidebarMenuButton>
-            </Link>
+             <Link href={item.href}>
+                <SidebarMenuButton 
+                    isActive={pathname === item.href}
+                    className="justify-start w-full"
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.label}
+                </SidebarMenuButton>
+              </Link>
           </SidebarMenuItem>
         ))}
         </SidebarMenu>
