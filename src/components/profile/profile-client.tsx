@@ -193,11 +193,11 @@ export function ProfileClient({ user }: ProfileClientProps) {
               <CardHeader>
                 <CardTitle>Account Actions</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <Button type="submit">
+              <CardContent className="grid grid-cols-2 gap-4">
+                <Button type="submit" className="w-full">
                   <Save className="mr-2 h-4 w-4" /> Save Changes
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full">
                   <LogOut className="mr-2 h-4 w-4" /> Logout
                 </Button>
               </CardContent>
