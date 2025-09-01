@@ -1,3 +1,6 @@
+
+'use client'
+
 import {
   Card,
   CardContent,
@@ -7,15 +10,55 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, MessageSquare, User, Bot, History, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { FileText, MessageSquare, User, Bot, History, ArrowRight, ShieldCheck, ShieldAlert, LoaderCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
+import { useState, useEffect } from 'react';
+import { getReportsAction, getUserProfileAction } from './actions';
+import type { Report, UserProfile } from '@/types';
 
 export default function Home() {
+  const { user, loading: authLoading } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (user) {
+        setLoading(true);
+        const [profileResult, reportsResult] = await Promise.all([
+          getUserProfileAction(user.uid),
+          getReportsAction(user.uid)
+        ]);
+
+        if (profileResult.success && profileResult.profile) {
+          setProfile(profileResult.profile);
+        }
+        if (reportsResult.success && reportsResult.reports) {
+          setReports(reportsResult.reports);
+        }
+        setLoading(false);
+      } else if (!authLoading) {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [user, authLoading]);
+  
+  if (loading || authLoading) {
+    return (
+        <div className="flex items-center justify-center h-full">
+            <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <div className="text-center space-y-4">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-          Welcome back, rohit chigatapu!
+          Welcome back, {profile?.firstName || 'User'}!
         </h1>
         <p className="max-w-3xl mx-auto text-lg text-muted-foreground">
           Your AI-powered medical assistant for understanding lab reports, medical scans, and getting personalized health insights. Upload your reports and start conversations with our intelligent system.
@@ -31,7 +74,7 @@ export default function Home() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{reports.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -40,7 +83,7 @@ export default function Home() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{reports.filter(r => r.chatHistory.length > 0).length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -49,7 +92,7 @@ export default function Home() {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Aug 30</div>
+            <div className="text-2xl font-bold">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
           </CardContent>
         </Card>
       </div>

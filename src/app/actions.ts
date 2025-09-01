@@ -12,8 +12,53 @@ import {
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, query, where, orderBy } from 'firebase/firestore';
-import type { Report, Message } from '@/types';
+import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, query, where, orderBy, setDoc } from 'firebase/firestore';
+import type { Report, Message, UserProfile } from '@/types';
+import { auth } from '@/lib/firebase-admin';
+import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+
+const SignUpSchema = z.object({
+    firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
+    lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
+    email: z.string().email({ message: "Please enter a valid email address." }),
+    password: z.string().min(8, { message: "Password must be at least 8 characters long." })
+});
+
+export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
+    const validation = SignUpSchema.safeParse(values);
+    if (!validation.success) {
+        return { success: false, error: validation.error.flatten().fieldErrors };
+    }
+    
+    const { email, password, firstName, lastName } = values;
+
+    try {
+        const userRecord = await auth.createUser({
+            email,
+            password,
+            displayName: `${firstName} ${lastName}`,
+        });
+
+        const userProfile: UserProfile = {
+            uid: userRecord.uid,
+            email,
+            firstName,
+            lastName,
+            createdAt: new Date(),
+        };
+
+        await setDoc(doc(db, 'users', userRecord.uid), userProfile);
+
+        return { success: true, userId: userRecord.uid };
+    } catch (error: any) {
+        let errorMessage = 'An unexpected error occurred.';
+        if (error.code === 'auth/email-already-exists') {
+            errorMessage = 'This email address is already in use by another account.';
+        }
+        return { success: false, error: { _errors: [errorMessage] } };
+    }
+}
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName: string) {
   try {
@@ -39,6 +84,8 @@ export async function processReportAction(userId: string, reportDataUri: string,
 
     const docRef = await addDoc(collection(db, 'reports'), newReport);
     
+    revalidatePath('/reports');
+
     return {
       success: true,
       report: { ...newReport, id: docRef.id } as Report,
@@ -59,7 +106,7 @@ export async function askQuestionAction(reportId: string, context: string, quest
         await updateDoc(reportRef, {
             chatHistory: arrayUnion(userMessage, assistantMessage)
         });
-
+        revalidatePath('/reports');
         return { success: true, answer: result.answer };
     } catch (error) {
         console.error('Error asking question:', error);
@@ -97,5 +144,26 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
     } catch (error) {
         console.error('Error fetching reports:', error);
         return { success: false, error: 'Failed to fetch reports.' };
+    }
+}
+
+export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
+    if (!userId) {
+        return { success: false, error: 'User not found' };
+    }
+    try {
+        const userDoc = await auth.getUser(userId);
+        const firestoreUserDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', userId)));
+        
+        if (firestoreUserDoc.empty) {
+            return { success: false, error: 'User profile not found in database.' };
+        }
+
+        const profile = firestoreUserDoc.docs[0].data() as UserProfile;
+        
+        return { success: true, profile };
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        return { success: false, error: 'Failed to fetch user profile.' };
     }
 }

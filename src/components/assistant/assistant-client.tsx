@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
@@ -11,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { askHealthAssistantAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { Markdown } from '@/components/markdown';
+import { useAuth } from '@/hooks/use-auth';
+
 
 type Message = {
   id: string;
@@ -37,6 +40,7 @@ export function AssistantClient() {
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,7 +51,7 @@ export function AssistantClient() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !user) return;
 
     const userMessage: Message = { id: `msg-${Date.now()}`, role: 'user', content: input };
     const pendingMessage: Message = { id: `msg-${Date.now() + 1}`, role: 'assistant', content: '', isPending: true };
@@ -57,7 +61,7 @@ export function AssistantClient() {
     setInput('');
 
     startTransition(async () => {
-      const result = await askHealthAssistantAction(currentInput);
+      const result = await askHealthAssistantAction(user.uid, currentInput, []);
       
       setMessages((prev) => {
         const newMessages = [...prev];
@@ -82,6 +86,7 @@ export function AssistantClient() {
   };
 
   const handleSuggestionClick = (question: string) => {
+    if(!user) return;
     setInput(question);
     const form = document.getElementById('chat-form') as HTMLFormElement | null;
     if(form) {
@@ -95,7 +100,7 @@ export function AssistantClient() {
             setInput('');
 
             startTransition(async () => {
-              const result = await askHealthAssistantAction(question);
+              const result = await askHealthAssistantAction(user.uid, question, []);
               setMessages((prev) => {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
@@ -192,9 +197,9 @@ export function AssistantClient() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Ask a health question..."
-                            disabled={isPending}
+                            disabled={isPending || !user}
                         />
-                        <Button type="submit" size="icon" disabled={isPending || !input.trim()}>
+                        <Button type="submit" size="icon" disabled={isPending || !input.trim() || !user}>
                             {isPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                             <span className="sr-only">Send</span>
                         </Button>

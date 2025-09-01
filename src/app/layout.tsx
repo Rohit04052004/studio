@@ -1,8 +1,10 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { Layout } from '@/components/layout/layout';
+import { AuthProvider } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
   title: 'MedReport',
@@ -25,7 +27,9 @@ export default function RootLayout({
         />
       </head>
       <body className={cn('font-sans antialiased', 'min-h-screen bg-background')}>
-        <Layout>{children}</Layout>
+        <AuthProvider>
+            <Layout>{children}</Layout>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

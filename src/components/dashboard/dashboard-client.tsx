@@ -8,45 +8,39 @@ import { ReportList } from './report-list';
 import { ReportView } from './report-view';
 import { ChatInterface } from './chat-interface';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, signInAnonymously, User } from 'firebase/auth';
 import { getReportsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
 
 export function DashboardClient() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading: authLoading } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
+    if (user) {
         setIsLoading(true);
-        const result = await getReportsAction(currentUser.uid);
-        if (result.success && result.reports) {
-          setReports(result.reports);
-          if (result.reports.length > 0) {
-            setSelectedReportId(result.reports[0].id);
-          }
-        } else {
-          toast({ variant: 'destructive', title: 'Error', description: result.error });
-        }
+        getReportsAction(user.uid)
+            .then(result => {
+                if (result.success && result.reports) {
+                    setReports(result.reports);
+                    if (result.reports.length > 0 && !selectedReportId) {
+                        setSelectedReportId(result.reports[0].id);
+                    }
+                } else {
+                    toast({ variant: 'destructive', title: 'Error', description: result.error });
+                }
+            })
+            .finally(() => setIsLoading(false));
+    } else if (!authLoading) {
         setIsLoading(false);
-      } else {
-        signInAnonymously(auth).catch((error) => {
-          console.error("Anonymous sign-in failed:", error);
-          toast({ variant: 'destructive', title: 'Authentication Failed', description: "Could not connect to the service." });
-        });
-      }
-    });
+        setReports([]);
+    }
+  }, [user, authLoading, toast, selectedReportId]);
 
-    return () => unsubscribe();
-  }, [toast]);
 
   const selectedReport = useMemo(
     () => reports.find((r) => r.id === selectedReportId) || null,
@@ -77,7 +71,7 @@ export function DashboardClient() {
       <aside className="lg:col-span-4 xl:col-span-3">
         <div className="space-y-6">
           <ReportUpload onAddReport={handleAddReport} user={user} />
-           {isLoading ? (
+           {isLoading || authLoading ? (
             <Card>
               <CardHeader>
                 <CardTitle>My Reports</CardTitle>
@@ -101,7 +95,7 @@ export function DashboardClient() {
       <div className="lg:col-span-8 xl:col-span-9">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
           <div className="lg:col-span-2">
-             <ReportView report={selectedReport} isLoading={isLoading} />
+             <ReportView report={selectedReport} isLoading={isLoading || authLoading} />
           </div>
           <div className="lg:col-span-2">
             <ChatInterface report={selectedReport} onUpdateChat={updateChatHistory} />

@@ -18,4 +18,6 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+auth.setPersistence({ type: 'LOCAL' });
+
 export { app, db, auth };

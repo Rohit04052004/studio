@@ -18,3 +18,11 @@ export type Report = {
   chatHistory: Message[];
   createdAt: Date;
 };
+
+export type UserProfile = {
+  uid: string;
+  email: string;
+  firstName: string;
+  lastName:string;
+  createdAt: Date;
+};

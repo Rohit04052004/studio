@@ -1,9 +1,18 @@
+
 'use client';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './sidebar';
 import { Header } from './header';
+import { usePathname } from 'next/navigation';
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+  if (isAuthPage) {
+    return <main>{children}</main>;
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
