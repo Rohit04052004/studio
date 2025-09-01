@@ -37,7 +37,7 @@ export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
     const { uid, email, firstName, lastName } = values;
 
     try {
-        if (!db) {
+        if (!db || !Object.keys(db).length) {
             throw new Error('Firebase Admin SDK is not initialized. Database operations are unavailable.');
         }
 
@@ -119,6 +119,9 @@ export async function askQuestionAction(reportId: string, context: string, quest
 
 export async function askHealthAssistantAction(userId: string, question: string, existingHistory: Message[]) {
     try {
+        if (!db || !Object.keys(db).length) {
+            return { success: false, error: 'Database service is unavailable. Cannot save chat history.' };
+        }
         const result = await healthAssistant({ question, history: existingHistory });
 
         const userMessage: Message = { role: 'user', content: question, createdAt: new Date() };
@@ -155,7 +158,7 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
     if (!userId) {
         return { success: true, reports: [] };
     }
-    if (!db) {
+    if (!db || !Object.keys(db).length) {
       return { success: false, error: 'Database service is unavailable.' };
     }
     try {
@@ -174,7 +177,7 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
     if (!userId) {
         return { success: true, reports: [], assistantChat: null };
     }
-    if (!db) {
+    if (!db || !Object.keys(db).length) {
       return { success: false, error: 'Database service is unavailable.' };
     }
     try {
@@ -199,7 +202,7 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
     if (!userId) {
         return { success: false, error: 'User not found' };
     }
-     if (!auth.getUser || !db) {
+     if (!auth || !Object.keys(auth).length || !db || !Object.keys(db).length) {
         return { success: false, error: 'Authentication or database service is unavailable.' };
     }
     try {
