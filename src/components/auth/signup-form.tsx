@@ -20,9 +20,10 @@ import { Stethoscope, LoaderCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { signUpAction } from '@/app/actions';
-import { createUserWithEmailAndPassword, User } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/hooks/use-auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import type { UserProfile } from '@/types';
 
 const SignUpSchema = z.object({
     firstName: z.string().min(2, { message: "First name must be at least 2 characters." }).regex(/^[a-zA-Z'-]+$/, { message: "First name can only contain letters, apostrophes, and hyphens." }),
@@ -60,62 +61,65 @@ export function SignUpForm() {
 
   const onSubmit = async (values: z.infer<typeof SignUpSchema>) => {
     setIsLoading(true);
-    let user: User | null = null;
     
-    // Step 1: Create the user with Firebase Auth on the client
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Sign Up Failed',
+        description: 'Authentication service is not available. Please try again later.',
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
-        if (!auth) {
-          throw new Error("Authentication service is not available. Please try again later.");
-        }
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        user = userCredential.user;
+      // Step 1: Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Step 2: Save user profile to Firestore
+      const db = getFirestore(auth.app);
+      const userProfile: UserProfile = {
+          uid: user.uid,
+          email: values.email,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          createdAt: new Date(),
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), userProfile);
+      
+      // Step 3: Success and redirect
+      toast({
+          title: 'Account Created!',
+          description: 'Your account has been successfully created. Please log in.',
+      });
+      router.push('/login');
+
     } catch (error: any) {
-        let errorMessage = 'An unexpected error occurred during sign up.';
-        if (error.code === 'auth/email-already-in-use') {
-            errorMessage = 'This email address is already in use by another account.';
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
-        toast({
-            variant: 'destructive',
-            title: 'Sign Up Failed',
-            description: errorMessage,
-        });
+      // Handle potential errors
+      let title = 'Sign Up Failed';
+      let description = 'An unexpected error occurred. Please try again.';
+
+      if (error.code === 'auth/email-already-in-use') {
+        description = 'This email address is already in use by another account.';
+      } else if (error.code) {
+        // Handle other Firebase errors
+        description = `An error occurred: ${error.code}. Please check your details and try again.`;
+      } else if (error.message) {
+        description = error.message;
+      }
+
+      console.error("Sign up error:", error);
+
+      toast({
+          variant: 'destructive',
+          title: title,
+          description: description,
+      });
+    } finally {
         setIsLoading(false);
-        return; // Stop execution if user creation fails
     }
-
-    // Step 2: Call the server action to save user profile data to Firestore
-    if (user) {
-        try {
-            const profileResult = await signUpAction({
-                uid: user.uid,
-                email: values.email,
-                firstName: values.firstName,
-                lastName: values.lastName,
-                displayName: `${values.firstName} ${values.lastName}`
-            });
-
-            if (profileResult?.success) {
-                toast({
-                    title: 'Account Created!',
-                    description: 'Your account has been successfully created. Please log in.',
-                });
-                router.push('/login');
-            } else {
-                 // This handles errors from the server action (e.g., Firestore write failed)
-                 toast({ variant: 'destructive', title: 'Sign Up Failed', description: profileResult?.error });
-            }
-        } catch (serverError: any) {
-             toast({
-                variant: 'destructive',
-                title: 'Sign Up Failed',
-                description: serverError.message || 'An unexpected error occurred while saving your profile.',
-            });
-        }
-    }
-    
-    setIsLoading(false);
   };
 
   return (

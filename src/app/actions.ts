@@ -11,10 +11,9 @@ import {
   answerReportQuestionsViaChat,
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
-import { db } from '@/lib/firebase-admin'; // Using admin db for server-side operations
+import { db, auth as adminAuth } from '@/lib/firebase-admin'; // Using admin db for server-side operations
 import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, query, where, orderBy, setDoc, getDoc } from 'firebase/firestore';
 import type { Report, Message, UserProfile, AssistantChat } from '@/types';
-import { auth } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
@@ -23,42 +22,25 @@ const SignUpSchema = z.object({
     email: z.string().email(),
     firstName: z.string(),
     lastName: z.string(),
-    displayName: z.string(),
 });
 
-// This action now only saves the user profile to Firestore.
-// User creation happens on the client-side.
+// This action is now a placeholder. The logic has been moved to the client.
+// It can be used for other server-side logic in the future if needed.
 export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
-    const validation = SignUpSchema.safeParse(values);
-    if (!validation.success) {
-        return { success: false, error: "Invalid user data." };
+    // The primary user creation and profile saving logic is now on the client-side
+    // in signup-form.tsx to avoid issues with Firebase Admin SDK initialization.
+    // This server action can be kept for potential future server-side tasks post-signup.
+    if (!db) {
+      return { success: false, error: "Database service is not available on the server." };
     }
-    
-    const { uid, email, firstName, lastName } = values;
-
-    try {
-        // Check if the db object is initialized by checking if it has the collection method.
-        if (typeof db.collection !== 'function') {
-            throw new Error('Database service is not initialized. Cannot save user profile.');
-        }
-
-        const userProfile: UserProfile = {
-            uid,
-            email,
-            firstName,
-            lastName,
-            createdAt: new Date(),
-        };
-
-        await setDoc(doc(db, 'users', uid), userProfile);
-        return { success: true };
-    } catch (error: any) {
-        console.error('Error in signUpAction:', error);
-        return { success: false, error: error.message || 'An unexpected error occurred while saving the profile.' };
-    }
+    // You could add server-side validation or other logic here.
+    return { success: true };
 }
 
-export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName: string) {
+export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
+  if (!db) {
+    return { success: false, error: 'Database service is unavailable.' };
+  }
   try {
     const summaryResult = await summarizeMedicalReport({ reportDataUri });
     const highlightedResult = await highlightAbnormalResults({ reportSummary: summaryResult.summary });
@@ -96,6 +78,9 @@ export async function processReportAction(userId: string, reportDataUri: string,
 }
 
 export async function askQuestionAction(reportId: string, context: string, question: string) {
+    if (!db) {
+      return { success: false, error: 'Database service is unavailable.' };
+    }
     try {
         const result = await answerReportQuestionsViaChat({ reportText: context, question });
         const userMessage: Message = { role: 'user', content: question, createdAt: new Date() };
@@ -115,10 +100,10 @@ export async function askQuestionAction(reportId: string, context: string, quest
 }
 
 export async function askHealthAssistantAction(userId: string, question: string, existingHistory: Message[]) {
+    if (!db) {
+      return { success: false, error: 'Database service is unavailable.' };
+    }
     try {
-        if (typeof db.collection !== 'function') {
-            return { success: false, error: 'Database service is unavailable. Cannot save chat history.' };
-        }
         const result = await healthAssistant({ question, history: existingHistory });
 
         const userMessage: Message = { role: 'user', content: question, createdAt: new Date() };
@@ -155,7 +140,7 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
     if (!userId) {
         return { success: true, reports: [] };
     }
-    if (typeof db.collection !== 'function') {
+    if (!db) {
       return { success: false, error: 'Database service is unavailable.' };
     }
     try {
@@ -174,7 +159,7 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
     if (!userId) {
         return { success: true, reports: [], assistantChat: null };
     }
-    if (typeof db.collection !== 'function') {
+    if (!db) {
       return { success: false, error: 'Database service is unavailable.' };
     }
     try {
@@ -199,11 +184,11 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
     if (!userId) {
         return { success: false, error: 'User not found' };
     }
-     if (typeof auth.getUser !== 'function' || typeof db.collection !== 'function') {
+     if (!adminAuth || !db) {
         return { success: false, error: 'Authentication or database service is unavailable.' };
     }
     try {
-        const userDoc = await auth.getUser(userId);
+        const userDoc = await adminAuth.getUser(userId);
         const firestoreUserDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', userId)));
         
         if (firestoreUserDoc.empty) {
