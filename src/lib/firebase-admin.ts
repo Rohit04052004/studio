@@ -1,57 +1,21 @@
 
-import * as admin from 'firebase-admin';
 import { config } from 'dotenv';
+import * as admin from 'firebase-admin';
 
 config();
 
-let app: admin.app.App | null = null;
-
-function getAdminApp() {
-  if (app) {
-    return app;
-  }
-
-  if (admin.apps.length > 0) {
-    app = admin.app();
-    return app;
-  }
-
-  let serviceAccount;
+if (!admin.apps.length) {
   try {
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    } else {
-      console.warn(
-        'Firebase Admin SDK service account key not found. Admin features will be unavailable.'
-      );
-      return null;
-    }
-  } catch (error) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
-    return null;
-  }
-
-  try {
-    app = admin.initializeApp({
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!);
+    admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-    return app;
   } catch (error) {
     console.error('Firebase Admin SDK initialization error:', error);
-    return null;
   }
 }
 
-function getDb() {
-  const adminApp = getAdminApp();
-  if (!adminApp) return null;
-  return admin.firestore(adminApp);
-}
+const db = admin.apps.length ? admin.firestore() : null;
+const auth = admin.apps.length ? admin.auth() : null;
 
-function getAuth() {
-  const adminApp = getAdminApp();
-  if (!adminApp) return null;
-  return admin.auth(adminApp);
-}
-
-export { getDb, getAuth };
+export { db, auth };
