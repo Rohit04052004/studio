@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { signUpAction } from '@/app/actions';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, User } from 'firebase/auth';
 import { useAuth } from '@/hooks/use-auth';
 
 const SignUpSchema = z.object({
@@ -60,37 +60,16 @@ export function SignUpForm() {
 
   const onSubmit = async (values: z.infer<typeof SignUpSchema>) => {
     setIsLoading(true);
+    let user: User | null = null;
     
+    // Step 1: Create the user with Firebase Auth on the client
     try {
         if (!auth) {
           throw new Error("Authentication service is not available. Please try again later.");
         }
-        // Step 1: Create the user with Firebase Auth on the client
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        const user = userCredential.user;
-
-        // Step 2: Call the server action to save user profile data to Firestore
-        const profileResult = await signUpAction({
-            uid: user.uid,
-            email: values.email,
-            firstName: values.firstName,
-            lastName: values.lastName,
-            displayName: `${values.firstName} ${values.lastName}`
-        });
-
-        if (profileResult?.success) {
-            toast({
-                title: 'Account Created!',
-                description: 'Your account has been successfully created. Please log in.',
-            });
-            router.push('/login');
-        } else {
-             // This handles errors from the server action (e.g., Firestore write failed)
-             toast({ variant: 'destructive', title: 'Sign Up Failed', description: profileResult?.error });
-        }
-
+        user = userCredential.user;
     } catch (error: any) {
-        // This handles errors from createUserWithEmailAndPassword (e.g., email already in use)
         let errorMessage = 'An unexpected error occurred during sign up.';
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = 'This email address is already in use by another account.';
@@ -102,9 +81,41 @@ export function SignUpForm() {
             title: 'Sign Up Failed',
             description: errorMessage,
         });
-    } finally {
         setIsLoading(false);
+        return; // Stop execution if user creation fails
     }
+
+    // Step 2: Call the server action to save user profile data to Firestore
+    if (user) {
+        try {
+            const profileResult = await signUpAction({
+                uid: user.uid,
+                email: values.email,
+                firstName: values.firstName,
+                lastName: values.lastName,
+                displayName: `${values.firstName} ${values.lastName}`
+            });
+
+            if (profileResult?.success) {
+                toast({
+                    title: 'Account Created!',
+                    description: 'Your account has been successfully created. Please log in.',
+                });
+                router.push('/login');
+            } else {
+                 // This handles errors from the server action (e.g., Firestore write failed)
+                 toast({ variant: 'destructive', title: 'Sign Up Failed', description: profileResult?.error });
+            }
+        } catch (serverError: any) {
+             toast({
+                variant: 'destructive',
+                title: 'Sign Up Failed',
+                description: serverError.message || 'An unexpected error occurred while saving your profile.',
+            });
+        }
+    }
+    
+    setIsLoading(false);
   };
 
   return (
