@@ -10,6 +10,7 @@ import { Send, User, Bot, LoaderCircle, ShieldAlert, BrainCircuit } from 'lucide
 import { useToast } from '@/hooks/use-toast';
 import { askHealthAssistantAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
+import { Markdown } from '@/components/markdown';
 
 type Message = {
   id: string;
@@ -159,7 +160,7 @@ export function AssistantClient() {
                             <span>Thinking...</span>
                             </div>
                         ) : (
-                            <p className="whitespace-pre-wrap">{message.content}</p>
+                            <Markdown content={message.content} />
                         )}
                         </div>
                         {message.role === 'user' && (
