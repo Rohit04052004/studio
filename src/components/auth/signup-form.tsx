@@ -21,7 +21,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { signUpAction } from '@/app/actions';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
 const SignUpSchema = z.object({
     firstName: z.string().min(2, { message: "First name must be at least 2 characters." }).regex(/^[a-zA-Z'-]+$/, { message: "First name can only contain letters, apostrophes, and hyphens." }),
@@ -63,22 +62,9 @@ export function SignUpForm() {
     if (result.success) {
       toast({
         title: 'Account Created!',
-        description: 'You have been successfully signed up. Logging you in...',
+        description: 'Your account has been successfully created. Please log in.',
       });
-      
-      const auth = getAuth();
-      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-      const idToken = await userCredential.user.getIdToken();
-
-       await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
-      });
-
-      router.push('/dashboard');
-      router.refresh();
-
+      router.push('/login');
     } else {
         if (result.error) {
             const fieldErrors = result.error;
