@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useCallback } from 'react';
@@ -7,18 +8,25 @@ import { useToast } from '@/hooks/use-toast';
 import { processReportAction } from '@/app/actions';
 import type { Report } from '@/types';
 import { Button } from '../ui/button';
+import type { User } from 'firebase/auth';
+
 
 interface ReportUploadProps {
-  onAddReport: (report: Omit<Report, 'id' | 'chatHistory'>) => void;
+  onAddReport: (report: Report) => void;
+  user: User | null;
 }
 
-export function ReportUpload({ onAddReport }: ReportUploadProps) {
+export function ReportUpload({ onAddReport, user }: ReportUploadProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [dragActive, setDragActive] = useState(false);
 
   const handleFile = useCallback((file: File) => {
-    if (!file) return;
+    if (!file || !user) {
+        if(!user) toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to upload a report.' });
+        return;
+    }
+
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -29,16 +37,9 @@ export function ReportUpload({ onAddReport }: ReportUploadProps) {
       textReader.onload = () => {
         const fileContent = textReader.result as string;
         startTransition(async () => {
-          const result = await processReportAction(dataUri, file.type, fileContent);
-          if (result.success) {
-            onAddReport({
-              name: file.name,
-              type: file.type.startsWith('image/') ? 'image' : 'text',
-              content: file.type.startsWith('image/') ? dataUri : fileContent,
-              summary: result.summary!,
-              highlightedSummary: result.highlightedSummary!,
-              originalText: result.originalText,
-            });
+          const result = await processReportAction(user.uid, dataUri, file.type, fileContent, file.name);
+          if (result.success && result.report) {
+            onAddReport(result.report);
             toast({
               title: 'Success',
               description: 'Report analyzed successfully.',
@@ -53,7 +54,7 @@ export function ReportUpload({ onAddReport }: ReportUploadProps) {
         });
       }
     };
-  }, [onAddReport, toast]);
+  }, [onAddReport, toast, user]);
 
   const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -106,7 +107,7 @@ export function ReportUpload({ onAddReport }: ReportUploadProps) {
               className="absolute w-full h-full opacity-0 cursor-pointer"
               onChange={handleChange}
               accept="text/plain, image/png, image/jpeg, image/webp"
-              disabled={isPending}
+              disabled={isPending || !user}
             />
             {isPending ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -114,7 +115,7 @@ export function ReportUpload({ onAddReport }: ReportUploadProps) {
                 <p>Analyzing report...</p>
               </div>
             ) : (
-              <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+              <label htmlFor="file-upload" className={`flex flex-col items-center justify-center w-full h-full ${user ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                 <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                   <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
                   <p className="mb-2 text-sm text-muted-foreground">

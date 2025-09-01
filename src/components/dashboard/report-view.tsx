@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Report } from '@/types';
@@ -7,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, FileText } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
 // A simple markdown to HTML converter
 const HighlightedSummary = ({ content }: { content: string }) => {
@@ -16,14 +18,35 @@ const HighlightedSummary = ({ content }: { content: string }) => {
   return <p className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
 };
 
-export function ReportView({ report }: { report: Report | null }) {
+export function ReportView({ report, isLoading }: { report: Report | null, isLoading: boolean }) {
+  if (isLoading) {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/4" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-1/5" />
+                    <Skeleton className="h-24 w-full" />
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-48 w-full" />
+                </div>
+            </CardContent>
+        </Card>
+    )
+  }
   if (!report) {
     return (
       <Card className="flex h-full min-h-[400px] items-center justify-center">
-        <CardContent className="text-center text-muted-foreground">
+        <CardContent className="text-center text-muted-foreground p-6">
           <FileText className="mx-auto h-12 w-12" />
           <h3 className="mt-4 text-lg font-semibold">No Report Selected</h3>
-          <p className="mt-1 text-sm">Select a report from the list to view its summary.</p>
+          <p className="mt-1 text-sm">Select a report from the list to view its summary, or upload a new one.</p>
         </CardContent>
       </Card>
     );

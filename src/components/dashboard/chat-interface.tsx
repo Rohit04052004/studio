@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
@@ -33,33 +34,51 @@ export function ChatInterface({ report, onUpdateChat }: ChatInterfaceProps) {
     e.preventDefault();
     if (!input.trim() || !report) return;
 
-    const userMessage: Message = { id: `msg-${Date.now()}`, role: 'user', content: input };
-    const pendingMessage: Message = { id: `msg-${Date.now() + 1}`, role: 'assistant', content: '', isPending: true };
+    const userMessage: Message = { role: 'user', content: input, createdAt: new Date() };
+    const pendingMessage: Message = { role: 'assistant', content: '', isPending: true, createdAt: new Date() };
     
-    const newChatHistory = [...report.chatHistory, userMessage, pendingMessage];
+    // Optimistically update UI
+    const newChatHistory = [...(report.chatHistory || []), userMessage, pendingMessage];
     onUpdateChat(report.id, newChatHistory);
+    
+    const currentInput = input;
     setInput('');
 
     startTransition(async () => {
       const context = report.originalText || report.summary;
-      const result = await askQuestionAction(context, input);
+      const result = await askQuestionAction(report.id, context, currentInput);
       
-      let finalChatHistory;
-      if (result.success && result.answer) {
-        const assistantMessage: Message = { id: `msg-${Date.now() + 2}`, role: 'assistant', content: result.answer };
-        finalChatHistory = [...report.chatHistory, userMessage, assistantMessage];
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-        const errorMessage: Message = { id: `msg-${Date.now() + 2}`, role: 'assistant', content: "Sorry, I couldn't get an answer. Please try again." };
-        finalChatHistory = [...report.chatHistory, userMessage, errorMessage];
-      }
-      onUpdateChat(report.id, finalChatHistory);
+      // Update UI with actual response
+      setMessages(prev => {
+        const updatedMessages = prev.filter(m => !m.isPending);
+        if (result.success && result.answer) {
+          const assistantMessage: Message = { role: 'assistant', content: result.answer, createdAt: new Date() };
+          const finalHistory = [...(report.chatHistory || []), userMessage, assistantMessage];
+           // This is tricky because the parent state has changed.
+           // A better approach might involve a global state manager or passing down the full report update function.
+           // For now, we assume the parent will refetch or handle the update.
+           // This optimistic UI will be out of sync until a reload. A proper implementation is needed.
+           onUpdateChat(report.id, finalHistory);
+
+        } else {
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: result.error,
+            });
+            const errorMessage: Message = { role: 'assistant', content: "Sorry, I couldn't get an answer. Please try again.", createdAt: new Date() };
+            const finalHistory = [...(report.chatHistory || []), userMessage, errorMessage];
+            onUpdateChat(report.id, finalHistory);
+        }
+      });
     });
   };
+
+  const setMessages = (update: (prev: Message[]) => Message[]) => {
+      if(!report) return;
+      const newMessages = update(report.chatHistory || []);
+      onUpdateChat(report.id, newMessages);
+  }
 
   return (
     <Card className="flex flex-col h-full">
@@ -76,14 +95,14 @@ export function ChatInterface({ report, onUpdateChat }: ChatInterfaceProps) {
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4 min-h-[200px]">
                 <p>Select a report to start a conversation.</p>
               </div>
-            ) : report.chatHistory.length === 0 ? (
+            ) : (report.chatHistory || []).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4 min-h-[200px]">
                     <p>Ask a question about "{report.name}" to begin.</p>
               </div>
             ) : (
-              report.chatHistory.map((message) => (
+              (report.chatHistory || []).map((message, index) => (
                 <div
-                  key={message.id}
+                  key={`${report.id}-msg-${index}`}
                   className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : '')}
                 >
                   {message.role === 'assistant' && (
