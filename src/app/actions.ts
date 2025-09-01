@@ -34,6 +34,10 @@ export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
     const { email, password, firstName, lastName } = values;
 
     try {
+        if (typeof auth.createUser !== 'function') {
+          throw new Error('Firebase Admin SDK is not initialized. Missing credentials.');
+        }
+
         const userRecord = await auth.createUser({
             email,
             password,
