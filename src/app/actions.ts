@@ -12,8 +12,8 @@ import {
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
 import { db } from '@/lib/firebase-admin'; // Using admin db for server-side operations
-import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, query, where, orderBy, setDoc } from 'firebase/firestore';
-import type { Report, Message, UserProfile } from '@/types';
+import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, query, where, orderBy, setDoc, getDoc } from 'firebase/firestore';
+import type { Report, Message, UserProfile, AssistantChat } from '@/types';
 import { auth } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
@@ -86,6 +86,7 @@ export async function processReportAction(userId: string, reportDataUri: string,
     const docRef = await addDoc(collection(db, 'reports'), newReport);
     
     revalidatePath('/reports');
+    revalidatePath('/history');
 
     return {
       success: true,
@@ -108,6 +109,7 @@ export async function askQuestionAction(reportId: string, context: string, quest
             chatHistory: arrayUnion(userMessage, assistantMessage)
         });
         revalidatePath('/reports');
+        revalidatePath('/history');
         return { success: true, answer: result.answer };
     } catch (error) {
         console.error('Error asking question:', error);
@@ -117,13 +119,30 @@ export async function askQuestionAction(reportId: string, context: string, quest
 
 export async function askHealthAssistantAction(userId: string, question: string, existingHistory: Message[]) {
     try {
-        const result = await healthAssistant({ question });
+        const result = await healthAssistant({ question, history: existingHistory });
 
         const userMessage: Message = { role: 'user', content: question, createdAt: new Date() };
         const assistantMessage: Message = { role: 'assistant', content: result.answer, createdAt: new Date() };
+        
+        const chatRef = doc(db, 'assistantChats', userId);
+        const chatDoc = await getDoc(chatRef);
 
-        // For simplicity, we're not saving assistant chats to DB yet.
-        // This would be the place to add it.
+        if (chatDoc.exists()) {
+             await updateDoc(chatRef, {
+                history: arrayUnion(userMessage, assistantMessage),
+                updatedAt: new Date(),
+            });
+        } else {
+             await setDoc(chatRef, {
+                userId,
+                history: [userMessage, assistantMessage],
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+        }
+
+        revalidatePath('/assistant');
+        revalidatePath('/history');
         
         return { success: true, answer: result.answer, newMessages: [userMessage, assistantMessage] };
     } catch (error) {
@@ -150,6 +169,31 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
         return { success: false, error: 'Failed to fetch reports.' };
     }
 }
+
+export async function getHistoryAction(userId: string): Promise<{ success: boolean; reports?: Report[]; assistantChat?: AssistantChat | null; error?: string; }> {
+    if (!userId) {
+        return { success: true, reports: [], assistantChat: null };
+    }
+    if (!db) {
+      return { success: false, error: 'Database service is unavailable.' };
+    }
+    try {
+        const reportsRef = collection(db, 'reports');
+        const reportsQuery = query(reportsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+        const reportsSnapshot = await getDocs(reportsQuery);
+        const reports = reportsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
+        
+        const assistantChatRef = doc(db, 'assistantChats', userId);
+        const assistantChatDoc = await getDoc(assistantChatRef);
+        const assistantChat = assistantChatDoc.exists() ? assistantChatDoc.data() as AssistantChat : null;
+
+        return { success: true, reports, assistantChat };
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        return { success: false, error: 'Failed to fetch history.' };
+    }
+}
+
 
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
     if (!userId) {

@@ -26,3 +26,10 @@ export type UserProfile = {
   lastName:string;
   createdAt: Date;
 };
+
+export type AssistantChat = {
+  userId: string;
+  history: Message[];
+  createdAt: Date;
+  updatedAt: Date;
+};

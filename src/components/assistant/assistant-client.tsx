@@ -13,19 +13,13 @@ import { askHealthAssistantAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { Markdown } from '@/components/markdown';
 import { useAuth } from '@/hooks/use-auth';
+import type { Message } from '@/types';
 
-
-type Message = {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  isPending?: boolean;
-};
 
 const initialMessage: Message = {
-    id: `msg-${Date.now()}`,
     role: 'assistant',
     content: "Hello! I'm your AI medical assistant. I can help answer questions about health topics, explain medical terms, and provide general health information. How can I help you today?",
+    createdAt: new Date()
 };
 
 const suggestedQuestions = [
@@ -53,15 +47,16 @@ export function AssistantClient() {
     e.preventDefault();
     if (!input.trim() || !user) return;
 
-    const userMessage: Message = { id: `msg-${Date.now()}`, role: 'user', content: input };
-    const pendingMessage: Message = { id: `msg-${Date.now() + 1}`, role: 'assistant', content: '', isPending: true };
+    const userMessage: Message = { role: 'user', content: input, createdAt: new Date() };
+    const pendingMessage: Message = { role: 'assistant', content: '', isPending: true, createdAt: new Date() };
     
+    const currentHistory = messages.slice(1); // Exclude the initial welcome message
     setMessages((prev) => [...prev, userMessage, pendingMessage]);
     const currentInput = input;
     setInput('');
 
     startTransition(async () => {
-      const result = await askHealthAssistantAction(user.uid, currentInput, []);
+      const result = await askHealthAssistantAction(user.uid, currentInput, currentHistory);
       
       setMessages((prev) => {
         const newMessages = [...prev];
@@ -88,41 +83,10 @@ export function AssistantClient() {
   const handleSuggestionClick = (question: string) => {
     if(!user) return;
     setInput(question);
-    const form = document.getElementById('chat-form') as HTMLFormElement | null;
-    if(form) {
-        // We can't submit the form directly here because the input state update is async.
-        // A simple timeout helps ensure the state is set before we create the user message.
-        setTimeout(() => {
-            const userMessage: Message = { id: `msg-${Date.now()}`, role: 'user', content: question };
-            const pendingMessage: Message = { id: `msg-${Date.now() + 1}`, role: 'assistant', content: '', isPending: true };
-            
-            setMessages((prev) => [...prev, userMessage, pendingMessage]);
-            setInput('');
-
-            startTransition(async () => {
-              const result = await askHealthAssistantAction(user.uid, question, []);
-              setMessages((prev) => {
-                const newMessages = [...prev];
-                const lastMessage = newMessages[newMessages.length - 1];
-
-                if (lastMessage.isPending) {
-                    if (result.success && result.answer) {
-                        lastMessage.content = result.answer;
-                    } else {
-                        lastMessage.content = "Sorry, I couldn't get an answer. Please try again.";
-                         toast({
-                            variant: 'destructive',
-                            title: 'Error',
-                            description: result.error,
-                        });
-                    }
-                    lastMessage.isPending = false;
-                }
-                return newMessages;
-              });
-            });
-        }, 100);
-    }
+    // Use a timeout to allow state to update before submitting form
+    setTimeout(() => {
+        document.getElementById('chat-form')?.requestSubmit();
+    }, 100);
   };
 
   return (
@@ -139,9 +103,9 @@ export function AssistantClient() {
             <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden p-6">
                 <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
                 <div className="space-y-4">
-                    {messages.map((message) => (
+                    {messages.map((message, index) => (
                     <div
-                        key={message.id}
+                        key={`msg-${index}`}
                         className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : '')}
                     >
                         {message.role === 'assistant' && (
