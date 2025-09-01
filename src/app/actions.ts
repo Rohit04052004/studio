@@ -12,10 +12,10 @@ import {
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
 import { db, auth } from '@/lib/firebase-admin';
-import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, query, where, orderBy, setDoc, getDoc } from 'firebase/firestore';
 import type { Report, Message, UserProfile, AssistantChat } from '@/types';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import * as admin from 'firebase-admin';
 
 const SignUpSchema = z.object({
     uid: z.string(),
@@ -53,7 +53,7 @@ export async function processReportAction(userId: string, reportDataUri: string,
   }
   try {
     const summaryResult = await summarizeMedicalReport({ reportDataUri });
-    const highlightedResult = await highlightAbnormalResults({ reportSummary: summaryResult.summary });
+    const highlightedResult = await highlightAbnormalResults({ summary: summaryResult.summary });
     
     let originalText;
     if (fileType.startsWith('text/')) {
