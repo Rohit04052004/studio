@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bot, FileText, History, LayoutDashboard, User } from 'lucide-react';
+import { Bot, FileText, History, LayoutDashboard } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ const navItems = [
   { href: '/assistant', label: 'Assistant', icon: Bot },
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/history', label: 'History', icon: History },
-  { href: '/profile', label: 'Profile', icon: User },
 ];
 
 export function Sidebar() {
