@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { signUpAction } from '@/app/actions';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
 
 const SignUpSchema = z.object({
     firstName: z.string().min(2, { message: "First name must be at least 2 characters." }).regex(/^[a-zA-Z'-]+$/, { message: "First name can only contain letters, apostrophes, and hyphens." }),
@@ -45,6 +45,7 @@ export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { auth } = useAuth();
 
   const form = useForm<z.infer<typeof SignUpSchema>>({
     resolver: zodResolver(SignUpSchema),
@@ -93,6 +94,8 @@ export function SignUpForm() {
         let errorMessage = 'An unexpected error occurred during sign up.';
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = 'This email address is already in use by another account.';
+        } else if (error.code === 'auth/configuration-not-found') {
+            errorMessage = 'Firebase configuration is missing or invalid. Please contact support.';
         } else if (error.message) {
             errorMessage = error.message;
         }
@@ -186,7 +189,7 @@ export function SignUpForm() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || !auth}>
                  {isLoading && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                 Create Account
               </Button>

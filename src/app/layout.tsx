@@ -6,20 +6,21 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { Layout } from '@/components/layout/layout';
 import { useState, useEffect, ReactNode } from 'react';
-import { onIdTokenChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onIdTokenChanged, User, getAuth, Auth } from 'firebase/auth';
+import { getFirebaseApp } from '@/lib/firebase';
 import { AuthContext } from '@/hooks/use-auth';
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [auth, setAuth] = useState<Auth | null>(null);
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
-    const unsubscribe = onIdTokenChanged(auth, (user) => {
+    const app = getFirebaseApp();
+    const authInstance = getAuth(app);
+    setAuth(authInstance);
+
+    const unsubscribe = onIdTokenChanged(authInstance, (user) => {
       setUser(user);
       setLoading(false);
     });
@@ -28,7 +29,7 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, auth, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
 
 const LoginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -32,6 +32,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { auth } = useAuth();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -110,7 +111,7 @@ export function LoginForm() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || !auth}>
                 {isLoading && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                 Sign In
               </Button>
