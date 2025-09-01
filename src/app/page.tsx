@@ -7,7 +7,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, MessageSquare, User, Bot, History, ArrowRight } from 'lucide-react';
+import { FileText, MessageSquare, User, Bot, History, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -113,6 +113,53 @@ export default function Home() {
           </CardFooter>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck />
+            About MedReport Interpreter
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold mb-2 text-lg">What We Do</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                <li>Analyze laboratory text reports and medical images</li>
+                <li>Provide clear, plain-language summaries of findings</li>
+                <li>Highlight abnormal or significant results</li>
+                <li>Explain complex medical terminology</li>
+                <li>Answer health-related questions using RAG technology</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2 text-lg">Privacy & Safety</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                <li>Your data is encrypted and secure</li>
+                <li>Reports are processed confidentially</li>
+                <li>No data is shared with third parties</li>
+                <li>Always consult healthcare professionals</li>
+                <li>This tool supplements, not replaces, medical advice</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="bg-yellow-950/30 border-yellow-200/50">
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-3">
+              <ShieldAlert className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-400" />
+              <div>
+                <h3 className="font-semibold text-yellow-200">Medical Disclaimer</h3>
+                <p className="text-sm text-yellow-200/80 mt-1">
+                  This tool is for educational and informational purposes only. It is not intended to replace professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
     </div>
   );
 }
