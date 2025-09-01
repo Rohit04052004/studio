@@ -11,7 +11,7 @@ import {
   answerReportQuestionsViaChat,
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
-import { db, auth as adminAuth } from '@/lib/firebase-admin'; // Using admin db for server-side operations
+import { getDb, getAuth } from '@/lib/firebase-admin';
 import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, query, where, orderBy, setDoc, getDoc } from 'firebase/firestore';
 import type { Report, Message, UserProfile, AssistantChat } from '@/types';
 import { z } from 'zod';
@@ -25,6 +25,7 @@ const SignUpSchema = z.object({
 });
 
 export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
+    const db = getDb();
     if (!db) {
       return { success: false, error: "Database service is not initialized. Cannot save user profile." };
     }
@@ -48,6 +49,7 @@ export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
 }
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
+  const db = getDb();
   if (!db) {
     return { success: false, error: 'Database service is unavailable.' };
   }
@@ -88,6 +90,7 @@ export async function processReportAction(userId: string, reportDataUri: string,
 }
 
 export async function askQuestionAction(reportId: string, context: string, question: string) {
+    const db = getDb();
     if (!db) {
       return { success: false, error: 'Database service is unavailable.' };
     }
@@ -110,6 +113,7 @@ export async function askQuestionAction(reportId: string, context: string, quest
 }
 
 export async function askHealthAssistantAction(userId: string, question: string, existingHistory: Message[]) {
+    const db = getDb();
     if (!db) {
       return { success: false, error: 'Database service is unavailable.' };
     }
@@ -147,6 +151,7 @@ export async function askHealthAssistantAction(userId: string, question: string,
 }
 
 export async function getReportsAction(userId: string): Promise<{ success: boolean; reports?: Report[]; error?: string; }> {
+    const db = getDb();
     if (!userId) {
         return { success: true, reports: [] };
     }
@@ -166,6 +171,7 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
 }
 
 export async function getHistoryAction(userId: string): Promise<{ success: boolean; reports?: Report[]; assistantChat?: AssistantChat | null; error?: string; }> {
+    const db = getDb();
     if (!userId) {
         return { success: true, reports: [], assistantChat: null };
     }
@@ -191,14 +197,16 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
 
 
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
+    const auth = getAuth();
+    const db = getDb();
     if (!userId) {
         return { success: false, error: 'User not found' };
     }
-     if (!adminAuth || !db) {
+     if (!auth || !db) {
         return { success: false, error: 'Authentication or database service is unavailable.' };
     }
     try {
-        const userDoc = await adminAuth.getUser(userId);
+        const userDoc = await auth.getUser(userId);
         const firestoreUserDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', userId)));
         
         if (firestoreUserDoc.empty) {

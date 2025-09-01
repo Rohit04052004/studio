@@ -2,11 +2,18 @@
 import * as admin from 'firebase-admin';
 import { config } from 'dotenv';
 
-config(); // Ensure environment variables are loaded
+config();
+
+let app: admin.app.App | null = null;
 
 function getAdminApp() {
+  if (app) {
+    return app;
+  }
+
   if (admin.apps.length > 0) {
-    return admin.app();
+    app = admin.app();
+    return app;
   }
 
   let serviceAccount;
@@ -14,10 +21,10 @@ function getAdminApp() {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
       serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
     } else {
-        console.warn(
-          'Firebase Admin SDK not initialized. Missing FIREBASE_SERVICE_ACCOUNT_KEY. Admin features will be unavailable.'
-        );
-        return null;
+      console.warn(
+        'Firebase Admin SDK service account key not found. Admin features will be unavailable.'
+      );
+      return null;
     }
   } catch (error) {
     console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
@@ -25,9 +32,10 @@ function getAdminApp() {
   }
 
   try {
-    return admin.initializeApp({
+    app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
+    return app;
   } catch (error) {
     console.error('Firebase Admin SDK initialization error:', error);
     return null;
@@ -35,16 +43,15 @@ function getAdminApp() {
 }
 
 function getDb() {
-    const app = getAdminApp();
-    if (!app) return null;
-    return admin.firestore(app);
+  const adminApp = getAdminApp();
+  if (!adminApp) return null;
+  return admin.firestore(adminApp);
 }
 
 function getAuth() {
-    const app = getAdminApp();
-    if (!app) return null;
-    return admin.auth(app);
+  const adminApp = getAdminApp();
+  if (!adminApp) return null;
+  return admin.auth(adminApp);
 }
 
-export const db = getDb();
-export const auth = getAuth();
+export { getDb, getAuth };
