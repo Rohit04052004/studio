@@ -33,6 +33,7 @@ export function AssistantClient() {
   const [messages, setMessages] = useState<Message[]>([initialMessage]);
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -42,6 +43,17 @@ export function AssistantClient() {
       scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
+  
+  useEffect(() => {
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error,
+      });
+      setError(null); // Reset error after showing toast
+    }
+  }, [error, toast]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -67,11 +79,7 @@ export function AssistantClient() {
                 lastMessage.content = result.answer;
             } else {
                 lastMessage.content = "Sorry, I couldn't get an answer. Please try again.";
-                 toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: result.error,
-                });
+                setError(result.error || 'An unknown error occurred.');
             }
             lastMessage.isPending = false;
         }
