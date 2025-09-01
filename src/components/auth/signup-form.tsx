@@ -63,7 +63,7 @@ export function SignUpForm() {
     
     try {
         if (!auth) {
-          throw new Error("Auth service is not available.");
+          throw new Error("Authentication service is not available. Please try again later.");
         }
         // Step 1: Create the user with Firebase Auth on the client
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
@@ -94,8 +94,6 @@ export function SignUpForm() {
         let errorMessage = 'An unexpected error occurred during sign up.';
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = 'This email address is already in use by another account.';
-        } else if (error.code === 'auth/configuration-not-found') {
-            errorMessage = 'Firebase configuration is missing or invalid. Please contact support.';
         } else if (error.message) {
             errorMessage = error.message;
         }

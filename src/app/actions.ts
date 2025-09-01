@@ -37,8 +37,9 @@ export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
     const { uid, email, firstName, lastName } = values;
 
     try {
-        if (!db || !Object.keys(db).length) {
-            throw new Error('Firebase Admin SDK is not initialized. Database operations are unavailable.');
+        // Check if the db object is initialized by checking if it has the collection method.
+        if (typeof db.collection !== 'function') {
+            throw new Error('Database service is not initialized. Cannot save user profile.');
         }
 
         const userProfile: UserProfile = {
@@ -50,10 +51,6 @@ export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
         };
 
         await setDoc(doc(db, 'users', uid), userProfile);
-
-        // We can also update the auth user's display name, though this might be better done on client
-        // await auth.updateUser(uid, { displayName: `${firstName} ${lastName}` });
-
         return { success: true };
     } catch (error: any) {
         console.error('Error in signUpAction:', error);
@@ -119,7 +116,7 @@ export async function askQuestionAction(reportId: string, context: string, quest
 
 export async function askHealthAssistantAction(userId: string, question: string, existingHistory: Message[]) {
     try {
-        if (!db || !Object.keys(db).length) {
+        if (typeof db.collection !== 'function') {
             return { success: false, error: 'Database service is unavailable. Cannot save chat history.' };
         }
         const result = await healthAssistant({ question, history: existingHistory });
@@ -158,7 +155,7 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
     if (!userId) {
         return { success: true, reports: [] };
     }
-    if (!db || !Object.keys(db).length) {
+    if (typeof db.collection !== 'function') {
       return { success: false, error: 'Database service is unavailable.' };
     }
     try {
@@ -177,7 +174,7 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
     if (!userId) {
         return { success: true, reports: [], assistantChat: null };
     }
-    if (!db || !Object.keys(db).length) {
+    if (typeof db.collection !== 'function') {
       return { success: false, error: 'Database service is unavailable.' };
     }
     try {
@@ -202,7 +199,7 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
     if (!userId) {
         return { success: false, error: 'User not found' };
     }
-     if (!auth || !Object.keys(auth).length || !db || !Object.keys(db).length) {
+     if (typeof auth.getUser !== 'function' || typeof db.collection !== 'function') {
         return { success: false, error: 'Authentication or database service is unavailable.' };
     }
     try {
