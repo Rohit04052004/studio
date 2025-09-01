@@ -6,17 +6,22 @@ let auth: admin.auth.Auth | null = null;
 
 if (!admin.apps.length) {
   try {
-    // When running locally, this relies on the GOOGLE_APPLICATION_CREDENTIALS
-    // environment variable. In a deployed environment (like App Hosting), this
-    // is configured automatically.
+    const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+    if (!serviceAccountBase64) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable is not set.');
+    }
+    
+    const decodedServiceAccount = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
+    const serviceAccount = JSON.parse(decodedServiceAccount);
+
     admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
+      credential: admin.credential.cert(serviceAccount),
     });
+    
     db = admin.firestore();
     auth = admin.auth();
   } catch (error: any) {
     console.error('Firebase Admin SDK initialization error:', error.message);
-    // You can set db and auth to null or handle the error as you see fit.
     db = null;
     auth = null;
   }
