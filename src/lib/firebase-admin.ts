@@ -1,8 +1,8 @@
 
 import * as admin from 'firebase-admin';
-import { config } from 'dotenv';
 
-config();
+let db: admin.firestore.Firestore | null = null;
+let auth: admin.auth.Auth | null = null;
 
 if (!admin.apps.length) {
   try {
@@ -23,12 +23,14 @@ if (!admin.apps.length) {
       credential: admin.credential.cert(serviceAccount),
     });
     console.log('Firebase Admin SDK initialized successfully.');
+    db = admin.firestore();
+    auth = admin.auth();
   } catch (error: any) {
     console.error('Firebase Admin SDK initialization error:', error.message);
   }
+} else {
+  db = admin.firestore();
+  auth = admin.auth();
 }
-
-const db = admin.apps.length ? admin.firestore() : null;
-const auth = admin.apps.length ? admin.auth() : null;
 
 export { db, auth };
