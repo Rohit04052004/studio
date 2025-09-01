@@ -15,29 +15,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return <main>{children}</main>;
   }
   
+  const MainLayout = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex min-h-screen w-full">
+      <AppSidebar />
+      <div className="flex flex-col flex-1">
+        <Header />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+      </div>
+    </div>
+  );
+
   // For landing page, render with a simplified layout (no sidebar if you prefer)
   if (isLandingPage) {
       return (
-         <div className="flex min-h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1">
-                <Header />
-                <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
-            </div>
-         </div>
+        <SidebarProvider>
+         <MainLayout>{children}</MainLayout>
+        </SidebarProvider>
       )
   }
 
   // Main application layout for authenticated users
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <div className="flex flex-col flex-1">
-          <Header />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
-        </div>
-      </div>
+      <MainLayout>{children}</MainLayout>
     </SidebarProvider>
   );
 }

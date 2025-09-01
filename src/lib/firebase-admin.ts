@@ -11,13 +11,16 @@ if (!admin.apps.length) {
       credential: admin.credential.cert(serviceAccount),
     });
   } else {
-    // Initialize without credentials in environments where the key isn't available
-    // (like client-side). Services requiring auth will not work.
-    console.warn("Firebase Admin SDK initialized without credentials. Admin features will not work.");
-    admin.initializeApp();
+    // In a production or deployed environment, you must provide a service account.
+    // The app will not function correctly without it.
+    console.warn(
+      'Firebase Admin SDK not initialized. Missing FIREBASE_SERVICE_ACCOUNT_KEY. Admin features will be unavailable.'
+    );
   }
 }
 
+// We need to check if the app was initialized before exporting the services.
+const isInitialized = admin.apps.length > 0;
 
-export const auth = admin.auth();
-export const db = admin.firestore();
+export const auth = isInitialized ? admin.auth() : ({} as admin.auth.Auth);
+export const db = isInitialized ? admin.firestore() : ({} as admin.firestore.Firestore);
