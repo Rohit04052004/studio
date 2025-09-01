@@ -97,7 +97,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={user.avatarUrl} alt={user.fullName} />
+                    <AvatarImage src={user.avatarUrl} alt={user.fullName} data-ai-hint="person face" />
                     <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <Button variant="outline">
@@ -123,7 +123,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                     <FormLabel>Email</FormLabel>
                     <Input value={user.email} disabled />
                     <p className="text-xs text-muted-foreground">
-                      Email cannot be changed here. Update in authentication settings.
+                      Email cannot be changed here.
                     </p>
                   </div>
                 </div>
@@ -193,11 +193,11 @@ export function ProfileClient({ user }: ProfileClientProps) {
               <CardHeader>
                 <CardTitle>Account Actions</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
+              <CardContent className="flex flex-col space-y-4">
                 <Button type="submit" className="w-full">
                   <Save className="mr-2 h-4 w-4" /> Save Changes
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button variant="destructive" className="w-full">
                   <LogOut className="mr-2 h-4 w-4" /> Logout
                 </Button>
               </CardContent>
