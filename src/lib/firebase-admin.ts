@@ -1,17 +1,24 @@
 
-import { config } from 'dotenv';
 import * as admin from 'firebase-admin';
+import { config } from 'dotenv';
 
 config();
 
 if (!admin.apps.length) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!);
+    const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (!serviceAccountString) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.');
+    }
+    
+    const serviceAccount = JSON.parse(serviceAccountString);
+    
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-  } catch (error) {
-    console.error('Firebase Admin SDK initialization error:', error);
+     console.log('Firebase Admin SDK initialized successfully.');
+  } catch (error: any) {
+    console.error('Firebase Admin SDK initialization error:', error.message);
   }
 }
 

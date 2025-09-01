@@ -38,7 +38,7 @@ export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
           createdAt: new Date(),
       };
       
-      await setDoc(doc(db, 'users', values.uid), userProfile);
+      await db.collection('users').doc(values.uid).set(userProfile);
       return { success: true };
 
     } catch (error) {
@@ -72,7 +72,7 @@ export async function processReportAction(userId: string, reportDataUri: string,
       createdAt: new Date(),
     };
 
-    const docRef = await addDoc(collection(db, 'reports'), newReport);
+    const docRef = await db.collection('reports').add(newReport);
     
     revalidatePath('/reports');
     revalidatePath('/history');
@@ -96,9 +96,9 @@ export async function askQuestionAction(reportId: string, context: string, quest
         const userMessage: Message = { role: 'user', content: question, createdAt: new Date() };
         const assistantMessage: Message = { role: 'assistant', content: result.answer, createdAt: new Date() };
 
-        const reportRef = doc(db, 'reports', reportId);
-        await updateDoc(reportRef, {
-            chatHistory: arrayUnion(userMessage, assistantMessage)
+        const reportRef = db.collection('reports').doc(reportId);
+        await reportRef.update({
+            chatHistory: admin.firestore.FieldValue.arrayUnion(userMessage, assistantMessage)
         });
         revalidatePath('/reports');
         revalidatePath('/history');
@@ -119,16 +119,16 @@ export async function askHealthAssistantAction(userId: string, question: string,
         const userMessage: Message = { role: 'user', content: question, createdAt: new Date() };
         const assistantMessage: Message = { role: 'assistant', content: result.answer, createdAt: new Date() };
         
-        const chatRef = doc(db, 'assistantChats', userId);
-        const chatDoc = await getDoc(chatRef);
+        const chatRef = db.collection('assistantChats').doc(userId);
+        const chatDoc = await chatRef.get();
 
-        if (chatDoc.exists()) {
-             await updateDoc(chatRef, {
-                history: arrayUnion(userMessage, assistantMessage),
+        if (chatDoc.exists) {
+             await chatRef.update({
+                history: admin.firestore.FieldValue.arrayUnion(userMessage, assistantMessage),
                 updatedAt: new Date(),
             });
         } else {
-             await setDoc(chatRef, {
+             await chatRef.set({
                 userId,
                 history: [userMessage, assistantMessage],
                 createdAt: new Date(),
@@ -154,9 +154,9 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
         return { success: true, reports: [] };
     }
     try {
-        const reportsRef = collection(db, 'reports');
-        const q = query(reportsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+        const reportsRef = db.collection('reports');
+        const q = reportsRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
+        const querySnapshot = await q.get();
         const reports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
         return { success: true, reports };
     } catch (error) {
@@ -173,14 +173,14 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
         return { success: true, reports: [], assistantChat: null };
     }
     try {
-        const reportsRef = collection(db, 'reports');
-        const reportsQuery = query(reportsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
-        const reportsSnapshot = await getDocs(reportsQuery);
+        const reportsRef = db.collection('reports');
+        const reportsQuery = reportsRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
+        const reportsSnapshot = await reportsQuery.get();
         const reports = reportsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
         
-        const assistantChatRef = doc(db, 'assistantChats', userId);
-        const assistantChatDoc = await getDoc(assistantChatRef);
-        const assistantChat = assistantChatDoc.exists() ? { ...assistantChatDoc.data(), userId } as AssistantChat : null;
+        const assistantChatRef = db.collection('assistantChats').doc(userId);
+        const assistantChatDoc = await assistantChatRef.get();
+        const assistantChat = assistantChatDoc.exists ? { ...assistantChatDoc.data(), userId } as AssistantChat : null;
 
         return { success: true, reports, assistantChat };
     } catch (error) {
@@ -199,7 +199,7 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
     }
     try {
         const userDoc = await auth.getUser(userId);
-        const firestoreUserDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', userId)));
+        const firestoreUserDoc = await db.collection('users').where('uid', '==', userId).get();
         
         if (firestoreUserDoc.empty) {
             return { success: false, error: 'User profile not found in database.' };
