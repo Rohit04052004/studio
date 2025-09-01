@@ -67,15 +67,17 @@ export function SignUpForm() {
       router.push('/login');
     } else {
         if (result.error) {
-            const fieldErrors = result.error;
-            for (const field in fieldErrors) {
-                if(Object.prototype.hasOwnProperty.call(fieldErrors, field)) {
-                    const message = (fieldErrors as any)[field]?._errors[0];
-                     form.setError(field as any, { type: 'server', message });
+            if(result.error.fieldErrors) {
+                for (const field in result.error.fieldErrors) {
+                    const typedField = field as keyof z.infer<typeof SignUpSchema>;
+                    const message = result.error.fieldErrors[typedField]?.[0]
+                    if (message) {
+                        form.setError(typedField, { type: 'server', message });
+                    }
                 }
             }
-             if (fieldErrors._errors && fieldErrors._errors.length > 0) {
-                toast({ variant: 'destructive', title: 'Sign Up Failed', description: fieldErrors._errors[0] });
+             if (result.error._errors && result.error._errors.length > 0) {
+                toast({ variant: 'destructive', title: 'Sign Up Failed', description: result.error._errors[0] });
             }
         }
     }
