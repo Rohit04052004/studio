@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -151,7 +150,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a language" />
-                          </SelectTrigger>
+                          </Trigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="en">English</SelectItem>
