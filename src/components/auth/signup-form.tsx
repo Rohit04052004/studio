@@ -78,7 +78,7 @@ export function SignUpForm() {
             displayName: `${values.firstName} ${values.lastName}`
         });
 
-        if (profileResult.success) {
+        if (profileResult?.success) {
             toast({
                 title: 'Account Created!',
                 description: 'Your account has been successfully created. Please log in.',
@@ -86,7 +86,7 @@ export function SignUpForm() {
             router.push('/login');
         } else {
              // This handles errors from the server action (e.g., Firestore write failed)
-             toast({ variant: 'destructive', title: 'Sign Up Failed', description: profileResult.error });
+             toast({ variant: 'destructive', title: 'Sign Up Failed', description: profileResult?.error });
         }
 
     } catch (error: any) {
