@@ -6,8 +6,9 @@ let auth: admin.auth.Auth | null = null;
 
 if (!admin.apps.length) {
   try {
-    // When deployed to App Hosting, the GOOGLE_APPLICATION_CREDENTIALS environment variable is automatically set.
-    // When running locally, this is set in the .env.local file.
+    // When running locally, this relies on the GOOGLE_APPLICATION_CREDENTIALS
+    // environment variable. In a deployed environment (like App Hosting), this
+    // is configured automatically.
     admin.initializeApp({
         credential: admin.credential.applicationDefault(),
     });
@@ -15,6 +16,9 @@ if (!admin.apps.length) {
     auth = admin.auth();
   } catch (error: any) {
     console.error('Firebase Admin SDK initialization error:', error.message);
+    // You can set db and auth to null or handle the error as you see fit.
+    db = null;
+    auth = null;
   }
 } else {
   db = admin.app().firestore();

@@ -6,13 +6,56 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, MessageSquare, ShieldCheck, ArrowRight, Bot, History } from 'lucide-react';
+import { FileText, Bot, History, ShieldCheck, ArrowRight, Server, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { db } from '@/lib/firebase-admin';
 
-export default function LandingPage() {
+async function checkDbConnection() {
+  try {
+    if (!db) {
+      return { connected: false, error: "Database service is not initialized in firebase-admin.ts" };
+    }
+    // Attempt a simple read operation. This will fail if not authenticated.
+    await db.collection('__test_collection__').limit(1).get();
+    return { connected: true };
+  } catch (e: any) {
+    console.error("Firebase connection test failed:", e.message);
+    return { connected: false, error: e.message };
+  }
+}
+
+
+export default async function LandingPage() {
+  const { connected } = await checkDbConnection();
+
   return (
     <div className="flex flex-col gap-12">
       <section className="text-center">
+
+        <Card className="max-w-md mx-auto mb-8">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 justify-center">
+                    <Server className="h-6 w-6" />
+                    Connection Status
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {connected ? (
+                    <div className="flex items-center justify-center gap-2 text-green-400">
+                        <CheckCircle2 />
+                        <p className="font-semibold">Successfully connected to Firebase!</p>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center gap-2 text-red-400">
+                        <AlertCircle />
+                        <p className="font-semibold">Failed to connect to Firebase.</p>
+                    </div>
+                )}
+                 <p className="text-xs text-muted-foreground mt-2">This tests the server's connection to Firestore.</p>
+            </CardContent>
+        </Card>
+
+
         <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4">
           Understand Your Health, Simplified.
         </h1>
