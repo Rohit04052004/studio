@@ -24,17 +24,27 @@ const SignUpSchema = z.object({
     lastName: z.string(),
 });
 
-// This action is now a placeholder. The logic has been moved to the client.
-// It can be used for other server-side logic in the future if needed.
 export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
-    // The primary user creation and profile saving logic is now on the client-side
-    // in signup-form.tsx to avoid issues with Firebase Admin SDK initialization.
-    // This server action can be kept for potential future server-side tasks post-signup.
     if (!db) {
-      return { success: false, error: "Database service is not available on the server." };
+      return { success: false, error: "Database service is not available on the server. Please ensure FIREBASE_SERVICE_ACCOUNT_KEY is set." };
     }
-    // You could add server-side validation or other logic here.
-    return { success: true };
+    
+    try {
+        const userProfile: UserProfile = {
+          uid: values.uid,
+          email: values.email,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          createdAt: new Date(),
+      };
+      
+      await setDoc(doc(db, 'users', values.uid), userProfile);
+      return { success: true };
+
+    } catch (error) {
+        console.error("Error in signUpAction:", error);
+        return { success: false, error: "Failed to save user profile to the database." };
+    }
 }
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
