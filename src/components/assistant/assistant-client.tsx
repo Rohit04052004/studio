@@ -174,14 +174,18 @@ export function AssistantClient() {
                 </div>
                 </ScrollArea>
                 <div className="mt-auto space-y-4">
-                    <p className="text-sm text-muted-foreground">Try asking:</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {suggestedQuestions.map((q) => (
-                            <Button key={q} variant="outline" size="sm" className="h-auto justify-start text-left py-2" onClick={() => handleSuggestionClick(q)}>
-                                {q}
-                            </Button>
-                        ))}
-                    </div>
+                  {messages.length === 1 && (
+                    <>
+                      <p className="text-sm text-muted-foreground">Try asking:</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {suggestedQuestions.map((q) => (
+                              <Button key={q} variant="outline" size="sm" className="h-auto justify-start text-left py-2" onClick={() => handleSuggestionClick(q)}>
+                                  {q}
+                              </Button>
+                          ))}
+                      </div>
+                    </>
+                  )}
                     <form id="chat-form" onSubmit={handleSubmit} className="flex items-center gap-2 pt-4 border-t">
                         <Input
                             value={input}
