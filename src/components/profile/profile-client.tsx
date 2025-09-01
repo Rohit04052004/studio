@@ -173,7 +173,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a tone" />
-                          </SelectTrigger>
+                          </Trigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="professional">Professional</SelectItem>
@@ -194,11 +194,11 @@ export function ProfileClient({ user }: ProfileClientProps) {
               <CardHeader>
                 <CardTitle>Account Actions</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col space-y-4">
-                <Button type="submit">
-                  <Save className="mr-2 h-4 w-4" /> Save Changes
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button type="submit" className="w-full">
+                  <Save className="mr-2 h-4 w-4" /> Save
                 </Button>
-                <Button variant="destructive">
+                <Button variant="destructive" className="w-full">
                   <LogOut className="mr-2 h-4 w-4" /> Logout
                 </Button>
               </CardContent>
@@ -229,4 +229,3 @@ export function ProfileClient({ user }: ProfileClientProps) {
     </div>
   );
 }
-
