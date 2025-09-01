@@ -28,7 +28,7 @@ const SignUpSchema = z.object({
 export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
     const validation = SignUpSchema.safeParse(values);
     if (!validation.success) {
-        return { success: false, error: validation.error.flatten().fieldErrors };
+        return { success: false, error: validation.error.flatten() };
     }
     
     const { email, password, firstName, lastName } = values;
@@ -55,8 +55,10 @@ export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
         let errorMessage = 'An unexpected error occurred.';
         if (error.code === 'auth/email-already-exists') {
             errorMessage = 'This email address is already in use by another account.';
+        } else if (error.message) {
+            errorMessage = error.message;
         }
-        return { success: false, error: { _errors: [errorMessage] } };
+        return { success: false, error: { formErrors: [errorMessage], fieldErrors: {} } };
     }
 }
 

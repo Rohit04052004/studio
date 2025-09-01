@@ -76,8 +76,8 @@ export function SignUpForm() {
                     }
                 }
             }
-             if (result.error._errors && result.error._errors.length > 0) {
-                toast({ variant: 'destructive', title: 'Sign Up Failed', description: result.error._errors[0] });
+             if (result.error.formErrors && result.error.formErrors.length > 0) {
+                toast({ variant: 'destructive', title: 'Sign Up Failed', description: result.error.formErrors[0] });
             }
         }
     }
