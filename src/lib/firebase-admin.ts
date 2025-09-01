@@ -2,41 +2,49 @@
 import * as admin from 'firebase-admin';
 import { config } from 'dotenv';
 
-// Force load environment variables from .env file
-config();
+config(); // Ensure environment variables are loaded
 
-let serviceAccount;
-try {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+function getAdminApp() {
+  if (admin.apps.length > 0) {
+    return admin.app();
   }
-} catch (error) {
-  console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
-  serviceAccount = null;
-}
 
-
-if (!admin.apps.length) {
-  if (serviceAccount) {
-    try {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    } catch (error) {
-       console.error('Firebase Admin SDK initialization error:', error);
+  let serviceAccount;
+  try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    } else {
+        console.warn(
+          'Firebase Admin SDK not initialized. Missing FIREBASE_SERVICE_ACCOUNT_KEY. Admin features will be unavailable.'
+        );
+        return null;
     }
-  } else {
-    // In a production or deployed environment, you must provide a service account.
-    // The app will not function correctly without it.
-    console.warn(
-      'Firebase Admin SDK not initialized. Missing FIREBASE_SERVICE_ACCOUNT_KEY. Admin features will be unavailable.'
-    );
+  } catch (error) {
+    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
+    return null;
+  }
+
+  try {
+    return admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } catch (error) {
+    console.error('Firebase Admin SDK initialization error:', error);
+    return null;
   }
 }
 
-// We need to check if the app was initialized before exporting the services.
-const isInitialized = admin.apps.length > 0;
+function getDb() {
+    const app = getAdminApp();
+    if (!app) return null;
+    return admin.firestore(app);
+}
 
-// Explicitly export services or null if not initialized to make checks easier.
-export const auth = isInitialized ? admin.auth() : null;
-export const db = isInitialized ? admin.firestore() : null;
+function getAuth() {
+    const app = getAdminApp();
+    if (!app) return null;
+    return admin.auth(app);
+}
+
+export const db = getDb();
+export const auth = getAuth();
