@@ -61,6 +61,9 @@ export function SignUpForm() {
     setIsLoading(true);
     
     try {
+        if (!auth) {
+          throw new Error("Auth service is not available.");
+        }
         // Step 1: Create the user with Firebase Auth on the client
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         const user = userCredential.user;

@@ -1,7 +1,7 @@
 
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   "projectId": "medreport-clarity",
@@ -13,9 +13,19 @@ const firebaseConfig = {
   "messagingSenderId": "775990169875"
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
+if (typeof window !== 'undefined' && !getApps().length) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else if (getApps().length > 0) {
+  app = getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+// @ts-ignore
 export { app, db, auth };

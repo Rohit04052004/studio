@@ -18,9 +18,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Stethoscope, LoaderCircle } from 'lucide-react';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { auth } from '@/lib/firebase';
 
 const LoginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -42,8 +43,11 @@ export function LoginForm() {
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
     setIsLoading(true);
-    const auth = getAuth();
+    
     try {
+      if (!auth) {
+        throw new Error("Auth service is not available.");
+      }
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const idToken = await userCredential.user.getIdToken();
       
