@@ -130,7 +130,7 @@ export function AssistantClient() {
             <p className="text-muted-foreground mt-2">Ask questions about health topics and get evidence-based answers</p>
         </div>
 
-        <Card className="w-full max-w-4xl mx-auto h-[65vh] flex flex-col">
+        <Card className="w-full max-w-4xl mx-auto h-[75vh] flex flex-col">
             <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden p-6">
                 <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
                 <div className="space-y-4">
