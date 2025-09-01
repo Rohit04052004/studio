@@ -24,7 +24,7 @@ export function Header() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
+      router.push('/');
       router.refresh();
     } catch (error) {
       console.error('Logout failed', error);

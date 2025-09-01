@@ -47,14 +47,13 @@ export function LoginForm() {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const idToken = await userCredential.user.getIdToken();
       
-      // Send the token to your server to set a cookie
       await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken }),
       });
 
-      router.push('/');
+      router.push('/dashboard');
       router.refresh();
 
     } catch (error: any) {
@@ -72,9 +71,9 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex items-center justify-center">
+          <Link href="/" className="mx-auto mb-4 flex items-center justify-center">
             <Stethoscope className="h-10 w-10 text-primary" />
-          </div>
+          </Link>
           <CardTitle className="text-2xl">Welcome Back!</CardTitle>
           <CardDescription>Sign in to access your MedReport dashboard.</CardDescription>
         </CardHeader>

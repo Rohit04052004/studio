@@ -71,7 +71,7 @@ export function SignUpForm() {
           body: JSON.stringify({ idToken }),
       });
 
-      router.push('/');
+      router.push('/dashboard');
       router.refresh();
 
     } else {
@@ -95,9 +95,9 @@ export function SignUpForm() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex items-center justify-center">
+          <Link href="/" className="mx-auto mb-4 flex items-center justify-center">
             <Stethoscope className="h-10 w-10 text-primary" />
-          </div>
+          </Link>
           <CardTitle className="text-2xl">Create an Account</CardTitle>
           <CardDescription>Get started with your AI-powered medical assistant.</CardDescription>
         </CardHeader>

@@ -1,208 +1,87 @@
 
-'use client'
-
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, MessageSquare, User, Bot, History, ArrowRight, ShieldCheck, ShieldAlert, LoaderCircle } from 'lucide-react';
+import { FileText, MessageSquare, ShieldCheck, ArrowRight, Bot, History } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/use-auth';
-import { useState, useEffect } from 'react';
-import { getReportsAction, getUserProfileAction } from './actions';
-import type { Report, UserProfile } from '@/types';
 
-export default function Home() {
-  const { user, loading: authLoading } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchData() {
-      if (user) {
-        setLoading(true);
-        const [profileResult, reportsResult] = await Promise.all([
-          getUserProfileAction(user.uid),
-          getReportsAction(user.uid)
-        ]);
-
-        if (profileResult.success && profileResult.profile) {
-          setProfile(profileResult.profile);
-        }
-        if (reportsResult.success && reportsResult.reports) {
-          setReports(reportsResult.reports);
-        }
-        setLoading(false);
-      } else if (!authLoading) {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [user, authLoading]);
-  
-  if (loading || authLoading) {
-    return (
-        <div className="flex items-center justify-center h-full">
-            <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    )
-  }
-
+export default function LandingPage() {
   return (
-    <div className="flex flex-col gap-8">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-          Welcome back, {profile?.firstName || 'User'}!
+    <div className="flex flex-col gap-12">
+      <section className="text-center">
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4">
+          Understand Your Health, Simplified.
         </h1>
-        <p className="max-w-3xl mx-auto text-lg text-muted-foreground">
-          Your AI-powered medical assistant for understanding lab reports, medical scans, and getting personalized health insights. Upload your reports and start conversations with our intelligent system.
+        <p className="max-w-3xl mx-auto text-lg text-muted-foreground mb-8">
+          MedReport is an AI-powered medical assistant that helps you make sense of complex lab reports and medical scans. Get clear summaries, ask questions, and take control of your health journey.
         </p>
-      </div>
+        <Button size="lg" asChild>
+          <Link href="/signup">
+            Get Started Now <ArrowRight className="ml-2" />
+          </Link>
+        </Button>
+         <p className="text-sm mt-4 text-muted-foreground">Already have an account? <Link href="/login" className="underline hover:text-primary">Sign In</Link></p>
+      </section>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Reports Analyzed
-            </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reports.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Chat Sessions</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reports.filter(r => r.chatHistory.length > 0).length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Last Login</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bot />
-              AI Assistant
-            </CardTitle>
-            <CardDescription>
-              Get answers to your health questions using advanced RAG technology.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow" />
-          <CardFooter>
-            <Button asChild className="w-full">
-              <Link href="/assistant">
-                Get Started <ArrowRight />
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText />
               Report Analysis
             </CardTitle>
-            <CardDescription>
-              Upload and analyze your medical reports with AI interpretation.
-            </CardDescription>
           </CardHeader>
-          <CardContent className="flex-grow" />
-          <CardFooter>
-            <Button asChild className="w-full">
-              <Link href="/reports">
-                Get Started <ArrowRight />
-              </Link>
-            </Button>
-          </CardFooter>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Upload text-based lab results or medical images. Our AI provides plain-language summaries, highlights abnormal findings, and explains complex medical terms.
+            </p>
+          </CardContent>
         </Card>
-        <Card className="flex flex-col">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot />
+              AI Assistant
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Ask follow-up questions about your report or inquire about general health topics. Our conversational AI provides evidence-based, easy-to-understand answers.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <History />
-              History
+              Secure History
             </CardTitle>
-            <CardDescription>
-              View all your past reports and consultations in one place.
-            </CardDescription>
           </CardHeader>
-          <CardContent className="flex-grow" />
-          <CardFooter>
-            <Button asChild className="w-full">
-              <Link href="/history">
-                Get Started <ArrowRight />
-              </Link>
-            </Button>
-          </CardFooter>
+          <CardContent>
+            <p className="text-muted-foreground">
+              All your reports and conversations are stored securely. Access your health information anytime, anywhere, and track your history in one place.
+            </p>
+          </CardContent>
         </Card>
-      </div>
-
-      <Card>
+      </section>
+      
+       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck />
-            About MedReport Interpreter
+            Your Privacy is Our Priority
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-2 text-lg">What We Do</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                <li>Analyze laboratory text reports and medical images</li>
-                <li>Provide clear, plain-language summaries of findings</li>
-                <li>Highlight abnormal or significant results</li>
-                <li>Explain complex medical terminology</li>
-                <li>Answer health-related questions using RAG technology</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2 text-lg">Privacy & Safety</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                <li>Your data is encrypted and secure</li>
-                <li>Reports are processed confidentially</li>
-                <li>No data is shared with third parties</li>
-                <li>Always consult healthcare professionals</li>
-                <li>This tool supplements, not replaces, medical advice</li>
-              </ul>
-            </div>
-          </div>
+          <p className="text-muted-foreground">
+             We are committed to protecting your sensitive health information. Your data is encrypted, stored securely, and is never shared with third parties. MedReport is a tool to supplement, not replace, the guidance of your healthcare provider. Always consult a medical professional for diagnosis and treatment.
+          </p>
         </CardContent>
       </Card>
-      
-      <Card className="bg-yellow-950/30 border-yellow-200/50">
-          <CardContent className="p-6">
-            <div className="flex items-start space-x-3">
-              <ShieldAlert className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-400" />
-              <div>
-                <h3 className="font-semibold text-yellow-200">Medical Disclaimer</h3>
-                <p className="text-sm text-yellow-200/80 mt-1">
-                  This tool is for educational and informational purposes only. It is not intended to replace professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
     </div>
   );
 }
