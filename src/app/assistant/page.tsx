@@ -1,5 +1,5 @@
-import { DashboardClient } from '@/components/dashboard/dashboard-client';
+import { AssistantClient } from '@/components/assistant/assistant-client';
 
 export default function AssistantPage() {
-  return <DashboardClient />;
+  return <AssistantClient />;
 }

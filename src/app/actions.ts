@@ -10,6 +10,7 @@ import {
 import {
   answerReportQuestionsViaChat,
 } from '@/ai/flows/answer-report-questions-via-chat';
+import { healthAssistant } from '@/ai/flows/health-assistant-flow';
 
 export async function processReportAction(reportDataUri: string, fileType: string, fileContent: string) {
   try {
@@ -39,6 +40,16 @@ export async function askQuestionAction(context: string, question: string) {
         return { success: true, answer: result.answer };
     } catch (error) {
         console.error('Error asking question:', error);
+        return { success: false, error: 'Failed to get an answer. Please try again.' };
+    }
+}
+
+export async function askHealthAssistantAction(question: string) {
+    try {
+        const result = await healthAssistant({ question });
+        return { success: true, answer: result.answer };
+    } catch (error) {
+        console.error('Error asking health assistant:', error);
         return { success: false, error: 'Failed to get an answer. Please try again.' };
     }
 }
