@@ -99,9 +99,12 @@ export function SignUpForm() {
       let title = 'Sign Up Failed';
       let description = 'An unexpected error occurred. Please try again.';
 
+      // Handle client-side auth errors
       if (error.code === 'auth/email-already-in-use') {
         description = 'This email address is already in use by another account.';
-      } else {
+      } 
+      // Handle server-side action errors
+      else if (error.message) {
         description = error.message;
       }
       

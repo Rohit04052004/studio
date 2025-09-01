@@ -26,7 +26,7 @@ const SignUpSchema = z.object({
 
 export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
     if (!db) {
-      return { success: false, error: "Database service is not available on the server. Please ensure FIREBASE_SERVICE_ACCOUNT_KEY is set." };
+      return { success: false, error: "Database service is not initialized. Cannot save user profile." };
     }
     
     try {
@@ -180,7 +180,7 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
         
         const assistantChatRef = doc(db, 'assistantChats', userId);
         const assistantChatDoc = await getDoc(assistantChatRef);
-        const assistantChat = assistantChatDoc.exists() ? assistantChatDoc.data() as AssistantChat : null;
+        const assistantChat = assistantChatDoc.exists() ? { ...assistantChatDoc.data(), userId } as AssistantChat : null;
 
         return { success: true, reports, assistantChat };
     } catch (error) {
