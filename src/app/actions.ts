@@ -11,7 +11,7 @@ import {
   answerReportQuestionsViaChat,
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-admin'; // Using admin db for server-side operations
 import { collection, addDoc, doc, updateDoc, arrayUnion, getDocs, query, where, orderBy, setDoc } from 'firebase/firestore';
 import type { Report, Message, UserProfile } from '@/types';
 import { auth } from '@/lib/firebase-admin';
@@ -19,50 +19,45 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
 const SignUpSchema = z.object({
-    firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
-    lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
-    email: z.string().email({ message: "Please enter a valid email address." }),
-    password: z.string().min(8, { message: "Password must be at least 8 characters long." })
+    uid: z.string(),
+    email: z.string().email(),
+    firstName: z.string(),
+    lastName: z.string(),
+    displayName: z.string(),
 });
 
+// This action now only saves the user profile to Firestore.
+// User creation happens on the client-side.
 export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
     const validation = SignUpSchema.safeParse(values);
     if (!validation.success) {
-        return { success: false, error: validation.error.flatten() };
+        return { success: false, error: "Invalid user data." };
     }
     
-    const { email, password, firstName, lastName } = values;
+    const { uid, email, firstName, lastName } = values;
 
     try {
-        if (typeof auth.createUser !== 'function') {
-          throw new Error('Firebase Admin SDK is not initialized. Missing credentials.');
+        if (!db) {
+            throw new Error('Firebase Admin SDK is not initialized. Database operations are unavailable.');
         }
 
-        const userRecord = await auth.createUser({
-            email,
-            password,
-            displayName: `${firstName} ${lastName}`,
-        });
-
         const userProfile: UserProfile = {
-            uid: userRecord.uid,
+            uid,
             email,
             firstName,
             lastName,
             createdAt: new Date(),
         };
 
-        await setDoc(doc(db, 'users', userRecord.uid), userProfile);
+        await setDoc(doc(db, 'users', uid), userProfile);
 
-        return { success: true, userId: userRecord.uid };
+        // We can also update the auth user's display name, though this might be better done on client
+        // await auth.updateUser(uid, { displayName: `${firstName} ${lastName}` });
+
+        return { success: true };
     } catch (error: any) {
-        let errorMessage = 'An unexpected error occurred.';
-        if (error.code === 'auth/email-already-exists') {
-            errorMessage = 'This email address is already in use by another account.';
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
-        return { success: false, error: { formErrors: [errorMessage], fieldErrors: {} } };
+        console.error('Error in signUpAction:', error);
+        return { success: false, error: error.message || 'An unexpected error occurred while saving the profile.' };
     }
 }
 
@@ -141,6 +136,9 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
     if (!userId) {
         return { success: true, reports: [] };
     }
+    if (!db) {
+      return { success: false, error: 'Database service is unavailable.' };
+    }
     try {
         const reportsRef = collection(db, 'reports');
         const q = query(reportsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
@@ -156,6 +154,9 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
     if (!userId) {
         return { success: false, error: 'User not found' };
+    }
+     if (!auth.getUser || !db) {
+        return { success: false, error: 'Authentication or database service is unavailable.' };
     }
     try {
         const userDoc = await auth.getUser(userId);

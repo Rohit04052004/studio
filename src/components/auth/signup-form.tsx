@@ -21,6 +21,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { signUpAction } from '@/app/actions';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 const SignUpSchema = z.object({
     firstName: z.string().min(2, { message: "First name must be at least 2 characters." }).regex(/^[a-zA-Z'-]+$/, { message: "First name can only contain letters, apostrophes, and hyphens." }),
@@ -43,6 +45,7 @@ export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = getAuth(app);
 
   const form = useForm<z.infer<typeof SignUpSchema>>({
     resolver: zodResolver(SignUpSchema),
@@ -57,31 +60,48 @@ export function SignUpForm() {
 
   const onSubmit = async (values: z.infer<typeof SignUpSchema>) => {
     setIsLoading(true);
-    const result = await signUpAction(values);
+    
+    try {
+        // Step 1: Create the user with Firebase Auth on the client
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const user = userCredential.user;
 
-    if (result.success) {
-      toast({
-        title: 'Account Created!',
-        description: 'Your account has been successfully created. Please log in.',
-      });
-      router.push('/login');
-    } else {
-        if (result.error) {
-            if(result.error.fieldErrors) {
-                for (const field in result.error.fieldErrors) {
-                    const typedField = field as keyof z.infer<typeof SignUpSchema>;
-                    const message = result.error.fieldErrors[typedField]?.[0]
-                    if (message) {
-                        form.setError(typedField, { type: 'server', message });
-                    }
-                }
-            }
-             if (result.error.formErrors && result.error.formErrors.length > 0) {
-                toast({ variant: 'destructive', title: 'Sign Up Failed', description: result.error.formErrors[0] });
-            }
+        // Step 2: Call the server action to save user profile data to Firestore
+        const profileResult = await signUpAction({
+            uid: user.uid,
+            email: values.email,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            displayName: `${values.firstName} ${values.lastName}`
+        });
+
+        if (profileResult.success) {
+            toast({
+                title: 'Account Created!',
+                description: 'Your account has been successfully created. Please log in.',
+            });
+            router.push('/login');
+        } else {
+             // This handles errors from the server action (e.g., Firestore write failed)
+             toast({ variant: 'destructive', title: 'Sign Up Failed', description: profileResult.error });
         }
+
+    } catch (error: any) {
+        // This handles errors from createUserWithEmailAndPassword (e.g., email already in use)
+        let errorMessage = 'An unexpected error occurred during sign up.';
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'This email address is already in use by another account.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Sign Up Failed',
+            description: errorMessage,
+        });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
