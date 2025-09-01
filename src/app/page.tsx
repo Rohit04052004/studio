@@ -4,19 +4,20 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, MessageSquare, User, Bot, Clock, History } from 'lucide-react';
+import { FileText, MessageSquare, User, Bot, History, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
   return (
     <div className="flex flex-col gap-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight">
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
           Welcome back, rohit chigatapu!
         </h1>
-        <p className="mt-2 text-lg text-muted-foreground">
+        <p className="max-w-3xl mx-auto text-lg text-muted-foreground">
           Your AI-powered medical assistant for understanding lab reports, medical scans, and getting personalized health insights. Upload your reports and start conversations with our intelligent system.
         </p>
       </div>
@@ -54,53 +55,62 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bot />
               AI Assistant
             </CardTitle>
             <CardDescription>
-              Get answers to your health questions using advanced RAG technology
+              Get answers to your health questions using advanced RAG technology.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-grow" />
+          <CardFooter>
             <Button asChild className="w-full">
-              <Link href="/assistant">Get Started</Link>
+              <Link href="/assistant">
+                Get Started <ArrowRight />
+              </Link>
             </Button>
-          </CardContent>
+          </CardFooter>
         </Card>
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText />
               Report Analysis
             </CardTitle>
             <CardDescription>
-              Upload and analyze your medical reports with AI interpretation
+              Upload and analyze your medical reports with AI interpretation.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-grow" />
+          <CardFooter>
             <Button asChild className="w-full">
-              <Link href="/reports">Get Started</Link>
+              <Link href="/reports">
+                Get Started <ArrowRight />
+              </Link>
             </Button>
-          </CardContent>
+          </CardFooter>
         </Card>
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <History />
               History
             </CardTitle>
             <CardDescription>
-              View all your past reports and consultations in one place
+              View all your past reports and consultations in one place.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-grow" />
+          <CardFooter>
             <Button asChild className="w-full">
-              <Link href="/history">Get Started</Link>
+              <Link href="/history">
+                Get Started <ArrowRight />
+              </Link>
             </Button>
-          </CardContent>
+          </CardFooter>
         </Card>
       </div>
     </div>
