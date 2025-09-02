@@ -143,7 +143,7 @@ export function AssistantClient() {
 
         <Card className="w-full max-w-4xl mx-auto h-[75vh] flex flex-col">
             <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden p-6">
-                <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
+                <ScrollArea className="flex-grow pr-4 -mr-4" viewportRef={scrollAreaRef}>
                 <div className="space-y-4">
                     {isLoadingHistory ? (
                          <div className="flex items-center justify-center h-full">
