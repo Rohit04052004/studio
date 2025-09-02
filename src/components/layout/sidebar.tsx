@@ -2,8 +2,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Bot, FileText, History, LayoutDashboard, User, LogOut, Settings, ChevronsUpDown } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Bot, FileText, History, LayoutDashboard, User, LogOut, Settings, ChevronsUpDown, PlusCircle, LoaderCircle } from 'lucide-react';
 import {
   Sidebar,
   SidebarHeader,
@@ -25,9 +25,12 @@ import {
 import { Button } from '../ui/button';
 import { Logo } from '../icons';
 import { useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
 import { useProfile } from '@/hooks/use-profile';
+import { deleteAssistantChatAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { useState, useTransition } from 'react';
+
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -128,7 +131,24 @@ function UserProfileButton() {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [isClearing, startClearingTransition] = useTransition();
+
+  const handleNewChat = () => {
+      if (!user) return;
+      startClearingTransition(async () => {
+          const result = await deleteAssistantChatAction(user.uid);
+          if (result.success) {
+              toast({ title: 'Success', description: 'New chat started.' });
+              // Force a reload of the page to reset the state
+              router.refresh();
+          } else {
+              toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to start a new chat.' });
+          }
+      });
+  }
 
   // For unauthenticated users (e.g., on the landing page), show a minimal sidebar
   if (!user) {
@@ -152,16 +172,28 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
         {navItems.map((item) => (
-          <SidebarMenuItem key={item.href}>
-             <Link href={item.href}>
+          <SidebarMenuItem key={item.href} className="relative">
+             <Link href={item.href} className="flex-grow">
                 <SidebarMenuButton 
-                    isActive={pathname === item.href}
+                    isActive={pathname.startsWith(item.href)}
                     className="justify-start w-full"
                 >
                   <item.icon className="mr-2 h-4 w-4" />
                   {item.label}
                 </SidebarMenuButton>
               </Link>
+             {item.href === '/assistant' && pathname.startsWith('/assistant') && (
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={handleNewChat}
+                    disabled={isClearing}
+                 >
+                    {isClearing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
+                    <span className="sr-only">New Chat</span>
+                 </Button>
+            )}
           </SidebarMenuItem>
         ))}
         </SidebarMenu>

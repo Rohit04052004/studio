@@ -184,7 +184,6 @@ export function AssistantClient() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
-  const [isClearing, startClearingTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const { toast } = useToast();
@@ -279,20 +278,6 @@ export function AssistantClient() {
     }, 100);
   };
   
-  const handleNewChat = () => {
-      if (!user) return;
-      startClearingTransition(async () => {
-          const result = await deleteAssistantChatAction(user.uid);
-          if (result.success) {
-              setMessages([]);
-              setIsInitialLoad(true);
-              toast({ title: 'Success', description: 'Chat history cleared.' });
-          } else {
-              setError(result.error || 'Failed to start a new chat.');
-          }
-      });
-  }
-
   const renderContent = () => {
     if (isLoadingHistory || authLoading) {
       return (
@@ -302,7 +287,7 @@ export function AssistantClient() {
       );
     }
 
-    if (isInitialLoad) {
+    if (isInitialLoad && messages.length === 0) {
       return (
         <InitialView
           input={input}
@@ -334,16 +319,6 @@ export function AssistantClient() {
                 <BrainCircuit className="h-6 w-6 text-primary" />
                 <h1 className="text-xl font-bold tracking-tight">AI Health Assistant</h1>
             </div>
-             {(!isInitialLoad && !isLoadingHistory) && (
-                <Button 
-                    variant="outline"
-                    onClick={handleNewChat}
-                    disabled={isClearing}
-                >
-                    {isClearing ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                    New Chat
-                </Button>
-             )}
         </div>
 
         <Card className="w-full max-w-4xl mx-auto flex-grow flex flex-col">
