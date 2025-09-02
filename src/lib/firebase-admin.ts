@@ -1,22 +1,14 @@
 
 import * as admin from 'firebase-admin';
+import serviceAccount from '../../serviceAccountKey.json';
 
 // This function will initialize the admin app if it's not already initialized
 // and return the auth and firestore services.
 export function getAdminInstances() {
-    let app;
     if (!admin.apps.length) {
         try {
-            const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
-            if (!serviceAccountBase64) {
-                throw new Error('FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable is not set.');
-            }
-            
-            const decodedServiceAccount = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
-            const serviceAccount = JSON.parse(decodedServiceAccount);
-
-            app = admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount),
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount as any),
                 databaseURL: "https://medreport-clarity.firebaseio.com"
             });
         } catch (error: any) {
@@ -24,12 +16,10 @@ export function getAdminInstances() {
             // Return nulls if initialization fails
             return { db: null, auth: null };
         }
-    } else {
-        app = admin.app();
     }
 
-    const db = admin.firestore(app);
-    const auth = admin.auth(app);
+    const db = admin.firestore();
+    const auth = admin.auth();
     
     return { db, auth };
 }
