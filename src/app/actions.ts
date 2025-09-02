@@ -18,9 +18,6 @@ import { db, auth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
-  if (!db) {
-    return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
-  }
   try {
     const summaryResult = await summarizeMedicalReport({ reportDataUri });
     const highlightedResult = await highlightAbnormalResults({ summary: summaryResult.summary });
@@ -58,9 +55,6 @@ export async function processReportAction(userId: string, reportDataUri: string,
 }
 
 export async function askQuestionAction(reportId: string, context: string, question: string) {
-    if (!db) {
-      return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
-    }
     try {
         const result = await answerReportQuestionsViaChat({ reportText: context, question });
         const userMessage: Message = { role: 'user', content: question, createdAt: new Date() };
@@ -80,9 +74,6 @@ export async function askQuestionAction(reportId: string, context: string, quest
 }
 
 export async function askHealthAssistantAction(userId: string, question: string, existingHistory: Message[]) {
-    if (!db) {
-      return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
-    }
     try {
         const result = await healthAssistant({ question, history: existingHistory });
 
@@ -117,9 +108,6 @@ export async function askHealthAssistantAction(userId: string, question: string,
 }
 
 export async function getReportsAction(userId: string): Promise<{ success: boolean; reports?: Report[]; error?: string; }> {
-    if (!db) {
-        return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
-    }
     if (!userId) {
         return { success: true, reports: [] };
     }
@@ -136,9 +124,6 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
 }
 
 export async function getHistoryAction(userId: string): Promise<{ success: boolean; reports?: Report[]; assistantChat?: AssistantChat | null; error?: string; }> {
-    if (!db) {
-        return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
-    }
     if (!userId) {
         return { success: true, reports: [], assistantChat: null };
     }
@@ -161,9 +146,6 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
 
 
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
-    if (!auth || !db) {
-        return { success  : false, error: 'Authentication or database service is unavailable. Please check server configuration.' };
-    }
     if (!userId) {
         return { success: false, error: 'User not found' };
     }
@@ -182,19 +164,4 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
         console.error('Error fetching user profile:', error);
         return { success: false, error: 'Failed to fetch user profile.' };
     }
-}
-
-
-export async function checkDbConnectionAction() {
-  try {
-    if (!db) {
-      return { connected: false, error: "Database service is not initialized. Check service-account.json" };
-    }
-    // Attempt a simple read operation. This will fail if not authenticated.
-    await db.collection('health_check').limit(1).get();
-    return { connected: true };
-  } catch (e: any) {
-    console.error("Firebase connection test failed:", e.message);
-    return { connected: false, error: e.message };
-  }
 }
