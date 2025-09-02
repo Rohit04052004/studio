@@ -38,6 +38,7 @@ export function AssistantClient() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     async function loadHistory() {
@@ -51,8 +52,10 @@ export function AssistantClient() {
                     createdAt: new Date(m.createdAt)
                 }));
                 setMessages(historyWithDates);
+                setIsInitialLoad(false);
             } else {
                 setMessages([initialMessage]);
+                setIsInitialLoad(true);
             }
             if (!result.success) {
                 setError(result.error || 'Failed to load chat history.');
@@ -61,6 +64,7 @@ export function AssistantClient() {
         } else if (!authLoading) {
             setIsLoadingHistory(false);
             setMessages([initialMessage]);
+            setIsInitialLoad(true);
         }
     }
     loadHistory();
@@ -86,6 +90,8 @@ export function AssistantClient() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() || !user || isPending) return;
+    
+    setIsInitialLoad(false);
 
     const userMessage: Message = { role: 'user', content: input, createdAt: new Date() };
     
@@ -191,7 +197,7 @@ export function AssistantClient() {
                 </div>
                 </ScrollArea>
                 <div className="mt-auto space-y-4">
-                  {messages.length === 1 && messages[0].content.startsWith("Hello!") && !isPending && (
+                  {isInitialLoad && !isPending && !isLoadingHistory && (
                     <>
                       <p className="text-sm text-muted-foreground">Try asking:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -225,5 +231,3 @@ export function AssistantClient() {
     </div>
   );
 }
-
-    
