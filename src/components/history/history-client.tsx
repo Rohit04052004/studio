@@ -175,12 +175,6 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
         <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle className="truncate pr-8">{getModalTitle()}</DialogTitle>
-                 <DialogClose asChild>
-                    <Button variant="ghost" size="icon" className="absolute top-4 right-4">
-                        <X className="h-4 w-4" />
-                        <span className="sr-only">Close</span>
-                    </Button>
-                </DialogClose>
             </DialogHeader>
             <div className="flex-grow overflow-hidden">
                 <ChatHistory messages={getModalChatHistory()} />
