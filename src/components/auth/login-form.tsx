@@ -53,15 +53,19 @@ export function LoginForm() {
       const idToken = await userCredential.user.getIdToken();
       
       // Use the server-side session endpoint
-      await fetch('/api/auth/session', {
+      const response = await fetch('/api/auth/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to create server session.");
+      }
       
-      // The router.refresh() is crucial to update client-side state
-      // and re-evaluate the middleware for redirection.
-      router.refresh();
+      // The onIdTokenChanged listener in RootLayout will handle the redirect.
+      // We no longer need router.refresh() or router.push() here.
+      // This makes the logic more robust.
 
     } catch (error: any) {
       toast({
