@@ -6,29 +6,28 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { Layout } from '@/components/layout/layout';
 import { useState, useEffect, ReactNode } from 'react';
-import { onIdTokenChanged, User, getAuth, Auth } from 'firebase/auth';
-import { getFirebaseApp } from '@/lib/firebase';
-import { AuthContext } from '@/hooks/use-auth';
-
-// Initialize Firebase and Auth outside the component to ensure it's a singleton.
-const app = getFirebaseApp();
-const authInstance = getAuth(app);
+import { onIdTokenChanged, User } from 'firebase/auth';
+import { AuthContext, useAuth } from '@/hooks/use-auth';
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { auth } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(authInstance, (user) => {
-      setUser(user);
+    if (auth) {
+      const unsubscribe = onIdTokenChanged(auth, (user) => {
+        setUser(user);
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
       setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+    }
+  }, [auth]);
 
   return (
-    <AuthContext.Provider value={{ user, auth: authInstance, loading }}>
+    <AuthContext.Provider value={{ user, auth, loading }}>
       {children}
     </AuthContext.Provider>
   );
