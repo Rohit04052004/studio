@@ -13,7 +13,6 @@ export function getAdminInstances() {
                     // Replace escaped newlines with actual newlines
                     privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
                 }),
-                databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
             });
         } catch (error: any) {
             console.error('Firebase Admin SDK initialization error:', error.message);
