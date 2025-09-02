@@ -22,7 +22,6 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/hooks/use-auth';
-import { signUpAction } from '@/app/actions';
 
 const SignUpSchema = z.object({
     firstName: z.string().min(2, { message: "First name must be at least 2 characters." }).regex(/^[a-zA-Z'-]+$/, { message: "First name can only contain letters, apostrophes, and hyphens." }),
@@ -75,17 +74,22 @@ export function SignUpForm() {
       // Step 1: Create user with Firebase Auth (client-side)
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
+      const idToken = await user.getIdToken();
 
-      // Step 2: Call server action to save user profile to Firestore
-      const profileResult = await signUpAction({
-          uid: user.uid,
-          email: values.email,
+      // Step 2: Call API route to save user profile to Firestore
+      const syncResult = await fetch('/api/sync-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken,
           firstName: values.firstName,
           lastName: values.lastName,
+        }),
       });
 
-      if (!profileResult.success) {
-          throw new Error(profileResult.error || 'Failed to save user profile.');
+      if (!syncResult.ok) {
+        const errorData = await syncResult.json();
+        throw new Error(errorData.error || 'Failed to save user profile.');
       }
       
       // Step 3: Success and redirect

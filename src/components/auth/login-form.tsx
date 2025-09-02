@@ -57,6 +57,14 @@ export function LoginForm() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken }),
       });
+      
+      // Sync user profile to Firestore, but don't wait for it
+      fetch('/api/sync-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, firstName: 'N/A', lastName: 'N/A' }), // Names are not available at login
+      }).catch(err => console.error("Error syncing user on login:", err));
+
 
       router.push('/dashboard');
 

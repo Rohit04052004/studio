@@ -17,37 +17,6 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import * as admin from 'firebase-admin';
 
-const SignUpSchema = z.object({
-    uid: z.string(),
-    email: z.string().email(),
-    firstName: z.string(),
-    lastName: z.string(),
-});
-
-export async function signUpAction(values: z.infer<typeof SignUpSchema>) {
-    const { db } = getAdminInstances();
-    if (!db) {
-      return { success: false, error: "Database service is not initialized. Cannot save user profile." };
-    }
-    
-    try {
-        const userProfile: UserProfile = {
-          uid: values.uid,
-          email: values.email,
-          firstName: values.firstName,
-          lastName: values.lastName,
-          createdAt: new Date(),
-      };
-      
-      await db.collection('users').doc(values.uid).set(userProfile);
-      return { success: true };
-
-    } catch (error) {
-        console.error("Error in signUpAction:", error);
-        return { success: false, error: "Failed to save user profile to the database." };
-    }
-}
-
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
   const { db } = getAdminInstances();
   if (!db) {
