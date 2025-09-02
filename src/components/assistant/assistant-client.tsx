@@ -90,25 +90,24 @@ export function AssistantClient() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() || !user || isPending) return;
-    
+
     setIsInitialLoad(false);
 
     const userMessage: Message = { role: 'user', content: input, createdAt: new Date() };
-    
-    const currentHistory = messages.length === 1 && messages[0].content.startsWith("Hello!") 
-        ? [] 
-        : messages;
-
-    setMessages([...currentHistory, userMessage]);
-    
     const currentInput = input;
+    
+    // Get the history, clearing the initial message if it's the first real question
+    const currentHistory = messages.length === 1 && messages[0].content.startsWith("Hello!")
+      ? []
+      : messages;
+
+    // Set user message and pending message in one go to prevent scroll jump
+    setMessages([...currentHistory, userMessage, { role: 'assistant', content: '', isPending: true, createdAt: new Date() }]);
     setInput('');
 
     startTransition(async () => {
-      setMessages(prev => [...prev, { role: 'assistant', content: '', isPending: true, createdAt: new Date() }]);
-      
       const result = await askHealthAssistantAction(user.uid, currentInput, [...currentHistory, userMessage]);
-      
+
       setMessages((prev) => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
@@ -132,7 +131,10 @@ export function AssistantClient() {
     setInput(question);
     // Use a timeout to allow state to update before submitting form
     setTimeout(() => {
-        document.getElementById('chat-form')?.requestSubmit();
+        const form = document.getElementById('chat-form') as HTMLFormElement;
+        if (form) {
+            form.requestSubmit();
+        }
     }, 100);
   };
 
