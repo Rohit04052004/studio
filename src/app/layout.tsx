@@ -8,7 +8,7 @@ import { Layout } from '@/components/layout/layout';
 import { useState, useEffect, ReactNode } from 'react';
 import { onIdTokenChanged, User } from 'firebase/auth';
 import { AuthContext, useAuth } from '@/hooks/use-auth';
-import { ProfileProvider } from '@/hooks/use-profile';
+import { ProfileProvider } from '@/hooks/use-profile.tsx';
 import { usePathname, useRouter } from 'next/navigation';
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {
