@@ -65,8 +65,6 @@ export default function HistoryPage() {
     (report.type === 'assistant' && report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower)))
   );
 
-  const reportChats = reports.filter(report => report.chatHistory.length > 0);
-
   const filteredReportAndArchivedChats = reports.filter(report => 
     report.chatHistory.length > 0 &&
     (
@@ -78,12 +76,17 @@ export default function HistoryPage() {
   const filteredActiveAssistantChat = assistantChat && assistantChat.history.some(m => m.content.toLowerCase().includes(searchLower)) ? assistantChat : null;
   const activeChatAsArray = filteredActiveAssistantChat ? [filteredActiveAssistantChat] : [];
   
+  // Combine all items for the 'all' tab, avoiding duplicates
   const allItems = [...filteredReports];
-  if(filteredActiveAssistantChat && !filteredReports.some(r => r.type === 'assistant')) {
-      // This logic is tricky, let's just combine all reports and chats
+  if (filteredActiveAssistantChat && !allItems.some(item => 'history' in item && item.userId === filteredActiveAssistantChat.userId)) {
+      allItems.unshift(filteredActiveAssistantChat);
   }
   
-  const allChatItems = [...filteredReportAndArchivedChats, ...activeChatAsArray];
+  // Combine all chat items
+  const allChatItems = [...filteredReportAndArchivedChats];
+   if (filteredActiveAssistantChat && !allChatItems.some(item => 'history' in item && item.userId === filteredActiveAssistantChat.userId)) {
+      allChatItems.unshift(filteredActiveAssistantChat);
+  }
 
   if (loading || authLoading) {
     return (
@@ -124,7 +127,7 @@ export default function HistoryPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">
-              All ({filteredReports.length + activeChatAsArray.length})
+              All ({allItems.length})
             </TabsTrigger>
             <TabsTrigger value="reports">
               <FileText className="mr-2 h-4 w-4" />
@@ -137,13 +140,13 @@ export default function HistoryPage() {
           </TabsList>
 
           <TabsContent value="all">
-              <HistoryList items={[...filteredReports, ...activeChatAsArray]} type="all" />
+              <HistoryList items={allItems} />
           </TabsContent>
           <TabsContent value="reports">
-              <HistoryList items={filteredReports.filter(r => r.type !== 'assistant')} type="reports" />
+              <HistoryList items={filteredReports.filter(r => r.type !== 'assistant')} />
           </TabsContent>
           <TabsContent value="chats">
-               <HistoryList items={allChatItems} type="chats" />
+               <HistoryList items={allChatItems} />
           </TabsContent>
         </Tabs>
       </div>
@@ -152,7 +155,7 @@ export default function HistoryPage() {
 }
 
 
-function HistoryList({ items, type }: { items: (Report | AssistantChat)[], type: string }) {
+function HistoryList({ items }: { items: (Report | AssistantChat)[] }) {
     if (items.length === 0) {
         return (
              <Card className="mt-4">
@@ -169,7 +172,8 @@ function HistoryList({ items, type }: { items: (Report | AssistantChat)[], type:
 
     return (
         <div className="space-y-4 mt-4">
-            {items.map((item, index) => {
+            {items.sort((a,b) => new Date('updatedAt' in b ? b.updatedAt : b.createdAt).getTime() - new Date('updatedAt' in a ? a.updatedAt : a.createdAt).getTime())
+            .map((item, index) => {
                 if ('name' in item) { // It's a Report (including archived chats)
                     return <ReportHistoryItem key={item.id || `report-${index}`} report={item} />;
                 } else if ('history' in item) { // It's an active AssistantChat
