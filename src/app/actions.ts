@@ -11,14 +11,13 @@ import {
   answerReportQuestionsViaChat,
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
-import { getAdminInstances } from '@/lib/firebase-admin';
+import { db, auth } from '@/lib/firebase-admin';
 import type { Report, Message, UserProfile, AssistantChat } from '@/types';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import * as admin from 'firebase-admin';
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
-  const { db } = getAdminInstances();
   if (!db) {
     return { success: false, error: 'Database service is unavailable.' };
   }
@@ -59,7 +58,6 @@ export async function processReportAction(userId: string, reportDataUri: string,
 }
 
 export async function askQuestionAction(reportId: string, context: string, question: string) {
-    const { db } = getAdminInstances();
     if (!db) {
       return { success: false, error: 'Database service is unavailable.' };
     }
@@ -82,7 +80,6 @@ export async function askQuestionAction(reportId: string, context: string, quest
 }
 
 export async function askHealthAssistantAction(userId: string, question: string, existingHistory: Message[]) {
-    const { db } = getAdminInstances();
     if (!db) {
       return { success: false, error: 'Database service is unavailable.' };
     }
@@ -120,7 +117,6 @@ export async function askHealthAssistantAction(userId: string, question: string,
 }
 
 export async function getReportsAction(userId: string): Promise<{ success: boolean; reports?: Report[]; error?: string; }> {
-    const { db } = getAdminInstances();
     if (!db) {
         return { success: false, error: 'Database service is unavailable.' };
     }
@@ -140,7 +136,6 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
 }
 
 export async function getHistoryAction(userId: string): Promise<{ success: boolean; reports?: Report[]; assistantChat?: AssistantChat | null; error?: string; }> {
-    const { db } = getAdminInstances();
     if (!db) {
         return { success: false, error: 'Database service is unavailable.' };
     }
@@ -166,7 +161,6 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
 
 
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
-    const { auth, db } = getAdminInstances();
     if (!auth || !db) {
         return { success: false, error: 'Authentication or database service is unavailable.' };
     }
@@ -192,10 +186,9 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
 
 
 export async function checkDbConnectionAction() {
-  const { db } = getAdminInstances();
   try {
     if (!db) {
-      return { connected: false, error: "Database service is not initialized in firebase-admin.ts" };
+      return { connected: false, error: "Database service is not initialized in firebase-admin-init.ts" };
     }
     // Attempt a simple read operation. This will fail if not authenticated.
     await db.collection('__test_collection__').limit(1).get();

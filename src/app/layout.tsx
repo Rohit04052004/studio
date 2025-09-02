@@ -10,16 +10,14 @@ import { onIdTokenChanged, User, getAuth, Auth } from 'firebase/auth';
 import { getFirebaseApp } from '@/lib/firebase';
 import { AuthContext } from '@/hooks/use-auth';
 
+const app = getFirebaseApp();
+const authInstance = getAuth(app);
+
 const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [auth, setAuth] = useState<Auth | null>(null);
 
   useEffect(() => {
-    const app = getFirebaseApp();
-    const authInstance = getAuth(app);
-    setAuth(authInstance);
-
     const unsubscribe = onIdTokenChanged(authInstance, (user) => {
       setUser(user);
       setLoading(false);
@@ -29,7 +27,7 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, auth, loading }}>
+    <AuthContext.Provider value={{ user, auth: authInstance, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,10 +1,9 @@
 
-import { getAdminInstances } from '@/lib/firebase-admin';
+import { db, auth } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const { auth, db } = getAdminInstances();
   if (!auth || !db) {
     return NextResponse.json({ error: 'Firebase admin not initialized.' }, { status: 500 });
   }
