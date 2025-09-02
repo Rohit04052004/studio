@@ -83,25 +83,24 @@ export function AssistantClient() {
     }
   }, [error, toast]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || !user) return;
+    if (!input.trim() || !user || isPending) return;
 
     const userMessage: Message = { role: 'user', content: input, createdAt: new Date() };
     
-    // If it's the first message, clear the initial welcome message
     const currentHistory = messages.length === 1 && messages[0].content.startsWith("Hello!") 
         ? [] 
         : messages;
 
-    const pendingMessage: Message = { role: 'assistant', content: '', isPending: true, createdAt: new Date() };
-    setMessages([...currentHistory, userMessage, pendingMessage]);
-
+    setMessages([...currentHistory, userMessage]);
+    
     const currentInput = input;
     setInput('');
 
     startTransition(async () => {
-      // Pass the correct history (without pending message) to the action
+      setMessages(prev => [...prev, { role: 'assistant', content: '', isPending: true, createdAt: new Date() }]);
+      
       const result = await askHealthAssistantAction(user.uid, currentInput, [...currentHistory, userMessage]);
       
       setMessages((prev) => {
@@ -123,7 +122,7 @@ export function AssistantClient() {
   };
 
   const handleSuggestionClick = (question: string) => {
-    if(!user) return;
+    if(!user || isPending) return;
     setInput(question);
     // Use a timeout to allow state to update before submitting form
     setTimeout(() => {
@@ -192,7 +191,7 @@ export function AssistantClient() {
                 </div>
                 </ScrollArea>
                 <div className="mt-auto space-y-4">
-                  {messages.length === 1 && messages[0].content.startsWith("Hello!") && (
+                  {messages.length === 1 && messages[0].content.startsWith("Hello!") && !isPending && (
                     <>
                       <p className="text-sm text-muted-foreground">Try asking:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -226,3 +225,5 @@ export function AssistantClient() {
     </div>
   );
 }
+
+    
