@@ -107,6 +107,38 @@ export async function askHealthAssistantAction(userId: string, question: string,
     }
 }
 
+export async function getAssistantChatAction(userId: string): Promise<{ success: boolean; chat?: AssistantChat | null; error?: string; }> {
+    if (!userId) {
+        return { success: true, chat: null };
+    }
+    try {
+        const assistantChatRef = db.collection('assistantChats').doc(userId);
+        const assistantChatDoc = await assistantChatRef.get();
+
+        if (assistantChatDoc.exists) {
+            const chatData = assistantChatDoc.data();
+            if (!chatData) return { success: true, chat: null };
+
+            const chat: AssistantChat = {
+                userId,
+                history: chatData.history.map((msg: any) => ({
+                    ...msg,
+                    createdAt: (msg.createdAt as Timestamp).toDate()
+                })),
+                createdAt: (chatData.createdAt as Timestamp).toDate(),
+                updatedAt: (chatData.updatedAt as Timestamp).toDate(),
+            };
+            return { success: true, chat };
+        } else {
+            return { success: true, chat: null };
+        }
+    } catch (error) {
+        console.error('Error fetching assistant chat:', error);
+        return { success: false, error: 'Failed to fetch assistant chat.' };
+    }
+}
+
+
 export async function getReportsAction(userId: string): Promise<{ success: boolean; reports?: Report[]; error?: string; }> {
     if (!userId) {
         return { success: true, reports: [] };

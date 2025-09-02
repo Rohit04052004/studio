@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, User, Bot, LoaderCircle, ShieldAlert, BrainCircuit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { askHealthAssistantAction } from '@/app/actions';
+import { askHealthAssistantAction, getAssistantChatAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { Markdown } from '@/components/markdown';
 import { useAuth } from '@/hooks/use-auth';
@@ -34,9 +34,37 @@ export function AssistantClient() {
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function loadHistory() {
+        if (user) {
+            setIsLoadingHistory(true);
+            const result = await getAssistantChatAction(user.uid);
+            if (result.success && result.chat && result.chat.history.length > 0) {
+                // The history from firestore needs dates to be converted
+                const historyWithDates = result.chat.history.map(m => ({
+                    ...m,
+                    createdAt: new Date(m.createdAt)
+                }));
+                setMessages(historyWithDates);
+            } else {
+                setMessages([initialMessage]);
+            }
+            if (!result.success) {
+                setError(result.error || 'Failed to load chat history.');
+            }
+            setIsLoadingHistory(false);
+        } else if (!authLoading) {
+            setIsLoadingHistory(false);
+            setMessages([initialMessage]);
+        }
+    }
+    loadHistory();
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -60,15 +88,21 @@ export function AssistantClient() {
     if (!input.trim() || !user) return;
 
     const userMessage: Message = { role: 'user', content: input, createdAt: new Date() };
-    const pendingMessage: Message = { role: 'assistant', content: '', isPending: true, createdAt: new Date() };
     
-    const currentHistory = messages.slice(1); // Exclude the initial welcome message
-    setMessages((prev) => [...prev, userMessage, pendingMessage]);
+    // If it's the first message, clear the initial welcome message
+    const currentHistory = messages.length === 1 && messages[0].content.startsWith("Hello!") 
+        ? [] 
+        : messages;
+
+    const pendingMessage: Message = { role: 'assistant', content: '', isPending: true, createdAt: new Date() };
+    setMessages([...currentHistory, userMessage, pendingMessage]);
+
     const currentInput = input;
     setInput('');
 
     startTransition(async () => {
-      const result = await askHealthAssistantAction(user.uid, currentInput, currentHistory);
+      // Pass the correct history (without pending message) to the action
+      const result = await askHealthAssistantAction(user.uid, currentInput, [...currentHistory, userMessage]);
       
       setMessages((prev) => {
         const newMessages = [...prev];
@@ -111,48 +145,54 @@ export function AssistantClient() {
             <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden p-6">
                 <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
                 <div className="space-y-4">
-                    {messages.map((message, index) => (
-                    <div
-                        key={`msg-${index}`}
-                        className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : '')}
-                    >
-                        {message.role === 'assistant' && (
-                        <Avatar className="h-8 w-8">
-                            <AvatarFallback className="bg-primary/20 text-primary">
-                            <Bot className="h-5 w-5" />
-                            </AvatarFallback>
-                        </Avatar>
-                        )}
-                        <div
-                        className={cn(
-                            'max-w-md rounded-lg p-3 text-sm',
-                            message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        )}
-                        >
-                        {message.isPending ? (
-                            <div className="flex items-center gap-2">
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
-                            <span>Thinking...</span>
-                            </div>
-                        ) : (
-                            <Markdown content={message.content} />
-                        )}
+                    {isLoadingHistory ? (
+                         <div className="flex items-center justify-center h-full">
+                            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                         </div>
-                        {message.role === 'user' && (
-                        <Avatar className="h-8 w-8">
-                            <AvatarFallback>
-                            <User className="h-5 w-5" />
-                            </AvatarFallback>
-                        </Avatar>
-                        )}
-                    </div>
-                    ))}
+                    ) : (
+                        messages.map((message, index) => (
+                        <div
+                            key={`msg-${index}`}
+                            className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : '')}
+                        >
+                            {message.role === 'assistant' && (
+                            <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary/20 text-primary">
+                                <Bot className="h-5 w-5" />
+                                </AvatarFallback>
+                            </Avatar>
+                            )}
+                            <div
+                            className={cn(
+                                'max-w-md rounded-lg p-3 text-sm',
+                                message.role === 'user'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted'
+                            )}
+                            >
+                            {message.isPending ? (
+                                <div className="flex items-center gap-2">
+                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                                <span>Thinking...</span>
+                                </div>
+                            ) : (
+                                <Markdown content={message.content} />
+                            )}
+                            </div>
+                            {message.role === 'user' && (
+                            <Avatar className="h-8 w-8">
+                                <AvatarFallback>
+                                <User className="h-5 w-5" />
+                                </AvatarFallback>
+                            </Avatar>
+                            )}
+                        </div>
+                        ))
+                    )}
                 </div>
                 </ScrollArea>
                 <div className="mt-auto space-y-4">
-                  {messages.length === 1 && (
+                  {messages.length === 1 && messages[0].content.startsWith("Hello!") && (
                     <>
                       <p className="text-sm text-muted-foreground">Try asking:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
