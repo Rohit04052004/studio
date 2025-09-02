@@ -8,6 +8,7 @@ import { Layout } from '@/components/layout/layout';
 import { useState, useEffect, ReactNode } from 'react';
 import { onIdTokenChanged, User } from 'firebase/auth';
 import { AuthContext, useAuth } from '@/hooks/use-auth';
+import { ProfileProvider } from '@/hooks/use-profile';
 import { usePathname, useRouter } from 'next/navigation';
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -23,7 +24,7 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(user);
         setLoading(false);
         if (!user && pathname !== '/login' && pathname !== '/signup' && pathname !== '/') {
-            router.push('/login');
+            // This logic is now handled in the login/signup forms and middleware
         }
       });
       return () => unsubscribe();
@@ -34,7 +35,9 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, auth, loading }}>
-      {children}
+      <ProfileProvider>
+        {children}
+      </ProfileProvider>
     </AuthContext.Provider>
   );
 };
