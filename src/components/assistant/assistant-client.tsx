@@ -330,14 +330,20 @@ export function AssistantClient() {
   return (
     <div className="flex flex-col items-center w-full h-full">
         <div className="text-center my-4 w-full max-w-4xl flex justify-between items-center relative px-4">
-            <div className="flex-1 text-left">
-                 {(!isInitialLoad && !isLoadingHistory) && (
-                    <div className="flex items-center gap-2">
-                        <BrainCircuit className="h-6 w-6 text-primary" />
-                        <h1 className="text-xl font-bold tracking-tight">AI Health Assistant</h1>
-                    </div>
-                 )}
+             <div className="flex items-center gap-2">
+                <BrainCircuit className="h-6 w-6 text-primary" />
+                <h1 className="text-xl font-bold tracking-tight">AI Health Assistant</h1>
             </div>
+             {(!isInitialLoad && !isLoadingHistory) && (
+                <Button 
+                    variant="outline"
+                    onClick={handleNewChat}
+                    disabled={isClearing}
+                >
+                    {isClearing ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                    New Chat
+                </Button>
+             )}
         </div>
 
         <Card className="w-full max-w-4xl mx-auto flex-grow flex flex-col">
@@ -345,18 +351,6 @@ export function AssistantClient() {
                 {renderContent()}
             </CardContent>
         </Card>
-        
-        <div className="w-full max-w-4xl mx-auto pt-4 px-4">
-            <Button 
-                variant="outline"
-                className="w-full"
-                onClick={handleNewChat}
-                disabled={isClearing}
-            >
-                {isClearing ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                New Chat
-            </Button>
-        </div>
     </div>
   );
 }
