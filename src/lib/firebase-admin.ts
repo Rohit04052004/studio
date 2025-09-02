@@ -1,19 +1,21 @@
 
 import * as admin from 'firebase-admin';
-import serviceAccountInfo from '../../serviceAccountKey.json';
 
 // This function will initialize the admin app if it's not already initialized
 // and return the auth and firestore services.
 export function getAdminInstances() {
     if (!admin.apps.length) {
         try {
-            // The service account object has to be parsed and the private key's newlines have to be replaced
-            // to be correctly interpreted by the Firebase Admin SDK.
-            const serviceAccount = serviceAccountInfo as admin.ServiceAccount
+            const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+            if (!serviceAccountString) {
+                throw new Error("The FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.");
+            }
             
+            const serviceAccount = JSON.parse(serviceAccountString);
+
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
-                databaseURL: "https://medreport-clarity.firebaseio.com"
+                databaseURL: `https://medreport-clarity.firebaseio.com`
             });
         } catch (error: any) {
             console.error('Firebase Admin SDK initialization error:', error.message);
