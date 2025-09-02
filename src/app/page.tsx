@@ -8,25 +8,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { FileText, Bot, History, ShieldCheck, ArrowRight, Server, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
-import { db } from '@/lib/firebase-admin';
-
-async function checkDbConnection() {
-  try {
-    if (!db) {
-      return { connected: false, error: "Database service is not initialized in firebase-admin.ts" };
-    }
-    // Attempt a simple read operation. This will fail if not authenticated.
-    await db.collection('__test_collection__').limit(1).get();
-    return { connected: true };
-  } catch (e: any) {
-    console.error("Firebase connection test failed:", e.message);
-    return { connected: false, error: e.message };
-  }
-}
+import { checkDbConnectionAction } from './actions';
 
 
 export default async function LandingPage() {
-  const { connected } = await checkDbConnection();
+  const { connected } = await checkDbConnectionAction();
 
   return (
     <div className="flex flex-col gap-12">
