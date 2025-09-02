@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, History, ListFilter, MessageSquare, Search, LoaderCircle, Bot, User } from 'lucide-react';
+import { FileText, History, ListFilter, MessageSquare, Search, Bot, User, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+
 
 interface HistoryClientProps {
     initialReports: Report[];
@@ -23,6 +25,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
   const [assistantChat] = useState<AssistantChat | null>(initialAssistantChat);
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedItem, setSelectedItem] = useState<Report | AssistantChat | null>(null);
 
   const searchLower = searchTerm.toLowerCase();
 
@@ -58,66 +61,109 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
 
   const reportsOnly = filteredReports.filter(r => r.type !== 'assistant');
 
+  const handleCardClick = (item: Report | AssistantChat) => {
+    setSelectedItem(item);
+  };
+
+  const handleModalClose = () => {
+    setSelectedItem(null);
+  };
+
+  const getModalTitle = () => {
+    if (!selectedItem) return '';
+    if ('name' in selectedItem) {
+        return selectedItem.name;
+    }
+    return 'AI Health Assistant (Active)';
+  }
+
+  const getModalChatHistory = () => {
+    if (!selectedItem) return [];
+    if ('name' in selectedItem) { // Report
+        return selectedItem.chatHistory;
+    }
+    return selectedItem.history; // AssistantChat
+  }
+
+
   return (
-    <div className="flex flex-col w-full max-w-5xl mx-auto space-y-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight">History</h1>
-        <p className="mt-2 text-muted-foreground">
-          View your past reports, analyses, and conversations
-        </p>
-      </div>
-
-      <Card className="p-4">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search your history..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Button variant="outline">
-            <ListFilter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
+    <>
+      <div className="flex flex-col w-full max-w-5xl mx-auto space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight">History</h1>
+          <p className="mt-2 text-muted-foreground">
+            View your past reports, analyses, and conversations
+          </p>
         </div>
-      </Card>
 
-      <div>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">
-              All ({allItems.length})
-            </TabsTrigger>
-            <TabsTrigger value="reports">
-              <FileText className="mr-2 h-4 w-4" />
-              Reports ({reportsOnly.length})
-            </TabsTrigger>
-            <TabsTrigger value="chats">
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Chats ({allChatItems.length})
-            </TabsTrigger>
-          </TabsList>
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search your history..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button variant="outline">
+              <ListFilter className="mr-2 h-4 w-4" />
+              Filter
+            </Button>
+          </div>
+        </Card>
 
-          <TabsContent value="all">
-              <HistoryList items={allItems} />
-          </TabsContent>
-          <TabsContent value="reports">
-              <HistoryList items={reportsOnly} />
-          </TabsContent>
-          <TabsContent value="chats">
-               <HistoryList items={allChatItems} />
-          </TabsContent>
-        </Tabs>
+        <div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">
+                All ({allItems.length})
+              </TabsTrigger>
+              <TabsTrigger value="reports">
+                <FileText className="mr-2 h-4 w-4" />
+                Reports ({reportsOnly.length})
+              </TabsTrigger>
+              <TabsTrigger value="chats">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Chats ({allChatItems.length})
+              </Tabs-Trigger>
+            </TabsList>
+
+            <TabsContent value="all">
+                <HistoryList items={allItems} onCardClick={handleCardClick} />
+            </TabsContent>
+            <TabsContent value="reports">
+                <HistoryList items={reportsOnly} onCardClick={handleCardClick} />
+            </TabsContent>
+            <TabsContent value="chats">
+                 <HistoryList items={allChatItems} onCardClick={handleCardClick} />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-    </div>
+      <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && handleModalClose()}>
+        <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle className="truncate pr-8">{getModalTitle()}</DialogTitle>
+                 <DialogClose asChild>
+                    <Button variant="ghost" size="icon" className="absolute top-4 right-4">
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Close</span>
+                    </Button>
+                </DialogClose>
+            </DialogHeader>
+            <div className="flex-grow overflow-hidden">
+                <ChatHistory messages={getModalChatHistory()} />
+            </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 
-function HistoryList({ items }: { items: (Report | AssistantChat)[] }) {
+function HistoryList({ items, onCardClick }: { items: (Report | AssistantChat)[], onCardClick: (item: Report | AssistantChat) => void }) {
     if (items.length === 0) {
         return (
              <Card className="mt-4">
@@ -141,9 +187,9 @@ function HistoryList({ items }: { items: (Report | AssistantChat)[] }) {
             })
             .map((item, index) => {
                 if ('name' in item) { // It's a Report (including archived chats)
-                    return <ReportHistoryItem key={item.id || `report-${index}`} report={item} />;
+                    return <ReportHistoryItem key={item.id || `report-${index}`} report={item} onCardClick={() => onCardClick(item)} />;
                 } else if ('history' in item) { // It's an active AssistantChat
-                    return <AssistantChatHistoryItem key={item.userId || `chat-${index}`} chat={item} />;
+                    return <AssistantChatHistoryItem key={item.userId || `chat-${index}`} chat={item} onCardClick={() => onCardClick(item)} />;
                 }
                 return null;
             })}
@@ -151,49 +197,38 @@ function HistoryList({ items }: { items: (Report | AssistantChat)[] }) {
     )
 }
 
-function ReportHistoryItem({ report }: { report: Report }) {
-    if (report.type === 'assistant') {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span className="flex items-center gap-2"><Bot /> {report.name}</span>
-                        <span className="text-sm font-normal text-muted-foreground">{format(new Date(report.createdAt), 'PP p')}</span>
-                    </CardTitle>
-                    <CardDescription>Archived AI health conversation.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ChatHistory messages={report.chatHistory} />
-                </CardContent>
-            </Card>
-        )
-    }
+function ReportHistoryItem({ report, onCardClick }: { report: Report, onCardClick: () => void }) {
+    const isArchivedChat = report.type === 'assistant';
+    const description = isArchivedChat 
+        ? "Archived AI health conversation." 
+        : "AI-generated summary and analysis.";
+    const firstUserMessage = report.chatHistory.find(m => m.role === 'user')?.content;
+    const content = isArchivedChat
+      ? `Started with: "${firstUserMessage?.substring(0, 70) || 'General questions'}${firstUserMessage && firstUserMessage.length > 70 ? '...' : ''}"`
+      : report.summary?.substring(0, 150) + (report.summary && report.summary.length > 150 ? '...' : '');
 
     return (
-        <Card>
+        <Card onClick={onCardClick} className="cursor-pointer hover:bg-muted/50 transition-colors">
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2"><FileText /> {report.name}</span>
+                    <span className="flex items-center gap-2">
+                        {isArchivedChat ? <Bot /> : <FileText />} 
+                        {report.name}
+                    </span>
                     <span className="text-sm font-normal text-muted-foreground">{format(new Date(report.createdAt), 'PP')}</span>
                 </CardTitle>
-                <CardDescription>AI-generated summary and analysis.</CardDescription>
+                <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent>
-                {report.summary && <p className="text-sm p-4 bg-muted/50 rounded-lg">{report.summary}</p>}
-                {report.chatHistory.length > 0 && (
-                     <details className="mt-4">
-                        <summary className="cursor-pointer text-sm font-medium">View Conversation ({report.chatHistory.length} messages)</summary>
-                        <ChatHistory messages={report.chatHistory} />
-                    </details>
-                )}
+                <p className="text-sm text-muted-foreground line-clamp-2">{content}</p>
             </CardContent>
         </Card>
     )
 }
 
-function AssistantChatHistoryItem({ chat }: { chat: AssistantChat }) {
+function AssistantChatHistoryItem({ chat, onCardClick }: { chat: AssistantChat, onCardClick: () => void }) {
      return (
-        <Card>
+        <Card onClick={onCardClick} className="cursor-pointer hover:bg-muted/50 transition-colors">
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2"><Bot /> AI Health Assistant (Active)</span>
@@ -201,16 +236,26 @@ function AssistantChatHistoryItem({ chat }: { chat: AssistantChat }) {
                 </CardTitle>
                  <CardDescription>Current general health Q&A conversation.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <ChatHistory messages={chat.history} />
+             <CardContent>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                    {chat.history[chat.history.length-1]?.content}
+                </p>
             </CardContent>
         </Card>
     )
 }
 
 function ChatHistory({ messages }: { messages: Message[] }) {
+    if (!messages || messages.length === 0) {
+        return (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+                <p>No conversation history for this item.</p>
+            </div>
+        )
+    }
+
     return (
-        <ScrollArea className="h-64 w-full rounded-md border p-4 mt-2 bg-muted/30">
+        <ScrollArea className="h-full w-full rounded-md pr-4 -mr-4">
             <div className="space-y-4">
                 {messages.map((message, index) => (
                 <div
@@ -226,7 +271,7 @@ function ChatHistory({ messages }: { messages: Message[] }) {
                     )}
                     <div
                     className={cn(
-                        'max-w-xs md:max-w-md rounded-lg p-3 text-sm',
+                        'max-w-md rounded-lg p-3 text-sm',
                         message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
