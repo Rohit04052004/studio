@@ -107,6 +107,24 @@ export async function askHealthAssistantAction(userId: string, question: string,
     }
 }
 
+export async function deleteAssistantChatAction(userId: string) {
+    if (!userId) {
+        return { success: false, error: 'User not found.' };
+    }
+    try {
+        const chatRef = db.collection('assistantChats').doc(userId);
+        await chatRef.delete();
+        
+        revalidatePath('/assistant');
+        revalidatePath('/history');
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting assistant chat:', error);
+        return { success: false, error: 'Failed to delete chat history.' };
+    }
+}
+
 export async function getAssistantChatAction(userId: string): Promise<{ success: boolean; chat?: AssistantChat | null; error?: string; }> {
     if (!userId) {
         return { success: true, chat: null };

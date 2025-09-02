@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, User, Bot, LoaderCircle, ShieldAlert, BrainCircuit } from 'lucide-react';
+import { Send, User, Bot, LoaderCircle, ShieldAlert, BrainCircuit, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { askHealthAssistantAction, getAssistantChatAction } from '@/app/actions';
+import { askHealthAssistantAction, getAssistantChatAction, deleteAssistantChatAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { Markdown } from '@/components/markdown';
 import { useAuth } from '@/hooks/use-auth';
@@ -33,6 +33,7 @@ export function AssistantClient() {
   const [messages, setMessages] = useState<Message[]>([initialMessage]);
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [isClearing, startClearingTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const { toast } = useToast();
@@ -137,15 +138,43 @@ export function AssistantClient() {
         }
     }, 100);
   };
+  
+  const handleNewChat = () => {
+      if (!user) return;
+      startClearingTransition(async () => {
+          const result = await deleteAssistantChatAction(user.uid);
+          if (result.success) {
+              setMessages([initialMessage]);
+              setIsInitialLoad(true);
+              toast({ title: 'Success', description: 'Chat history cleared.' });
+          } else {
+              setError(result.error || 'Failed to start a new chat.');
+          }
+      });
+  }
 
   return (
     <div className="flex flex-col items-center w-full">
-        <div className="text-center my-4">
-            <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
-                <BrainCircuit className="h-10 w-10 text-primary" />
-                AI Health Assistant
-            </h1>
-            <p className="text-muted-foreground mt-2">Ask questions about health topics and get evidence-based answers</p>
+        <div className="text-center my-4 w-full max-w-4xl flex justify-center items-center relative">
+            <div className="flex items-center gap-3">
+              <BrainCircuit className="h-10 w-10 text-primary" />
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">
+                    AI Health Assistant
+                </h1>
+                <p className="text-muted-foreground mt-1">Ask questions about health topics and get evidence-based answers</p>
+              </div>
+            </div>
+            <Button 
+                variant="outline"
+                size="sm"
+                className="absolute right-0 top-1/2 -translate-y-1/2"
+                onClick={handleNewChat}
+                disabled={isClearing}
+            >
+                {isClearing ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                New Chat
+            </Button>
         </div>
 
         <Card className="w-full max-w-4xl mx-auto h-[75vh] flex flex-col">
