@@ -214,9 +214,10 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
     try {
         // Fetch all reports, including the newly archived assistant chats
         const reportsRef = db.collection('reports');
-        const reportsQuery = reportsRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
+        // REMOVED ORDER BY TO AVOID NEEDING A COMPOSITE INDEX
+        const reportsQuery = reportsRef.where('userId', '==', userId);
         const reportsSnapshot = await reportsQuery.get();
-        const reports = reportsSnapshot.docs.map(doc => {
+        let reports = reportsSnapshot.docs.map(doc => {
             const data = doc.data();
             return { 
                 id: doc.id, 
@@ -229,6 +230,9 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
                 })) || []
             } as unknown as Report;
         });
+
+        // Sort in code instead of in the query
+        reports = reports.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
         
         // Fetch the current active assistant chat, if it exists
         const assistantChatRef = db.collection('assistantChats').doc(userId);

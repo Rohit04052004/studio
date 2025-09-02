@@ -7,7 +7,8 @@ import type { Report, AssistantChat } from '@/types';
 
 async function getCurrentUserId() {
   try {
-    const sessionCookie = cookies().get('session')?.value;
+    const cookieStore = cookies();
+    const sessionCookie = cookieStore.get('session')?.value;
     if (!sessionCookie) return null;
     const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
     return decodedToken.uid;
