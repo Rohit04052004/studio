@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db, auth } from '@/lib/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { format } from 'date-fns';
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
   try {
@@ -107,23 +108,41 @@ export async function askHealthAssistantAction(userId: string, question: string,
     }
 }
 
-export async function deleteAssistantChatAction(userId: string) {
+export async function archiveAssistantChatAction(userId: string) {
     if (!userId) {
         return { success: false, error: 'User not found.' };
     }
     try {
         const chatRef = db.collection('assistantChats').doc(userId);
-        await chatRef.delete();
+        const chatDoc = await chatRef.get();
+
+        if (chatDoc.exists) {
+            const chatData = chatDoc.data() as AssistantChat;
+            if (chatData.history && chatData.history.length > 0) {
+                 // Create a new report document to archive the chat
+                const archiveReport: Omit<Report, 'id'> = {
+                    userId,
+                    name: `AI Assistant Chat - ${format(new Date(), 'PP p')}`,
+                    type: 'assistant',
+                    chatHistory: chatData.history,
+                    createdAt: chatData.updatedAt, // Use the last updated time as creation time
+                };
+                await db.collection('reports').add(archiveReport);
+            }
+            // Delete the active chat session
+            await chatRef.delete();
+        }
         
         revalidatePath('/assistant');
         revalidatePath('/history');
 
         return { success: true };
     } catch (error) {
-        console.error('Error deleting assistant chat:', error);
-        return { success: false, error: 'Failed to delete chat history.' };
+        console.error('Error archiving assistant chat:', error);
+        return { success: false, error: 'Failed to archive chat history.' };
     }
 }
+
 
 export async function getAssistantChatAction(userId: string): Promise<{ success: boolean; chat?: AssistantChat | null; error?: string; }> {
     if (!userId) {
@@ -178,14 +197,39 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
         return { success: true, reports: [], assistantChat: null };
     }
     try {
+        // Fetch all reports, including the newly archived assistant chats
         const reportsRef = db.collection('reports');
         const reportsQuery = reportsRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
         const reportsSnapshot = await reportsQuery.get();
-        const reports = reportsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
+        const reports = reportsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                ...data,
+                // Ensure createdAt is a Date object for server components, will be serialized for client
+                createdAt: (data.createdAt as Timestamp).toDate(),
+                chatHistory: data.chatHistory?.map((msg: any) => ({
+                    ...msg,
+                    createdAt: (msg.createdAt as Timestamp).toDate()
+                })) || []
+            } as Report;
+        });
         
+        // Fetch the current active assistant chat, if it exists
         const assistantChatRef = db.collection('assistantChats').doc(userId);
         const assistantChatDoc = await assistantChatRef.get();
-        const assistantChat = assistantChatDoc.exists ? { ...assistantChatDoc.data(), userId } as AssistantChat : null;
+        let assistantChat: AssistantChat | null = null;
+        if (assistantChatDoc.exists) {
+            const chatData = assistantChatDoc.data();
+            if (chatData) {
+                assistantChat = {
+                    userId,
+                    history: chatData.history.map((msg: any) => ({ ...msg, createdAt: (msg.createdAt as Timestamp).toDate() })),
+                    createdAt: (chatData.createdAt as Timestamp).toDate(),
+                    updatedAt: (chatData.updatedAt as Timestamp).toDate(),
+                }
+            }
+        }
 
         return { success: true, reports, assistantChat };
     } catch (error) {

@@ -27,7 +27,7 @@ import { Logo } from '../icons';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '../ui/skeleton';
 import { useProfile } from '@/hooks/use-profile';
-import { deleteAssistantChatAction } from '@/app/actions';
+import { archiveAssistantChatAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useTransition } from 'react';
 
@@ -139,9 +139,9 @@ export function AppSidebar() {
   const handleNewChat = () => {
       if (!user) return;
       startClearingTransition(async () => {
-          const result = await deleteAssistantChatAction(user.uid);
+          const result = await archiveAssistantChatAction(user.uid);
           if (result.success) {
-              toast({ title: 'Success', description: 'New chat started.' });
+              toast({ title: 'Success', description: 'New chat started. Old chat saved to history.' });
               // Force a reload of the page to reset the state
               router.refresh();
           } else {

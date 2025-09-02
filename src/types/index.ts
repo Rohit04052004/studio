@@ -10,11 +10,11 @@ export type Report = {
   id: string;
   userId: string;
   name: string;
-  type: 'text' | 'image';
-  content: string; // data URI for images, raw text for text files
+  type: 'text' | 'image' | 'assistant';
+  content?: string; // data URI for images, raw text for text files, optional for assistant
   originalText?: string;
-  summary: string;
-  highlightedSummary: string;
+  summary?: string;
+  highlightedSummary?: string;
   chatHistory: Message[];
   createdAt: Date;
 };

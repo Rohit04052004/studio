@@ -29,8 +29,25 @@ export default function HistoryPage() {
         setLoading(true);
         const result = await getHistoryAction(user.uid);
         if (result.success) {
-          setReports(result.reports || []);
-          setAssistantChat(result.assistantChat || null);
+          // Ensure reports are properly hydrated with Date objects
+          const hydratedReports = result.reports?.map(r => ({
+            ...r,
+            createdAt: new Date(r.createdAt),
+            chatHistory: r.chatHistory.map(m => ({ ...m, createdAt: new Date(m.createdAt)}))
+          })) || [];
+          setReports(hydratedReports);
+
+          if (result.assistantChat) {
+             const hydratedChat = {
+                ...result.assistantChat,
+                createdAt: new Date(result.assistantChat.createdAt),
+                updatedAt: new Date(result.assistantChat.updatedAt),
+                history: result.assistantChat.history.map(m => ({ ...m, createdAt: new Date(m.createdAt)}))
+            };
+            setAssistantChat(hydratedChat);
+          } else {
+            setAssistantChat(null);
+          }
         }
         setLoading(false);
       } else if (!authLoading) {
@@ -39,26 +56,34 @@ export default function HistoryPage() {
     }
     fetchData();
   }, [user, authLoading]);
+  
+  const searchLower = searchTerm.toLowerCase();
 
   const filteredReports = reports.filter(report =>
-    report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.summary.toLowerCase().includes(searchTerm.toLowerCase())
+    report.name.toLowerCase().includes(searchLower) ||
+    (report.summary && report.summary.toLowerCase().includes(searchLower)) ||
+    (report.type === 'assistant' && report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower)))
   );
-  
+
   const reportChats = reports.filter(report => report.chatHistory.length > 0);
 
-  const filteredReportChats = reportChats.filter(report =>
-    report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.chatHistory.some(m => m.content.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredReportAndArchivedChats = reports.filter(report => 
+    report.chatHistory.length > 0 &&
+    (
+        report.name.toLowerCase().includes(searchLower) ||
+        report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower))
+    )
   );
 
-  const filteredAssistantChat = assistantChat && assistantChat.history.some(m => m.content.toLowerCase().includes(searchTerm.toLowerCase())) ? assistantChat : null;
-
-  const allItems = [...filteredReports, ...filteredReportChats];
-  if(filteredAssistantChat) {
-    allItems.push(filteredAssistantChat as any); // A bit of a hack for a unified view
+  const filteredActiveAssistantChat = assistantChat && assistantChat.history.some(m => m.content.toLowerCase().includes(searchLower)) ? assistantChat : null;
+  const activeChatAsArray = filteredActiveAssistantChat ? [filteredActiveAssistantChat] : [];
+  
+  const allItems = [...filteredReports];
+  if(filteredActiveAssistantChat && !filteredReports.some(r => r.type === 'assistant')) {
+      // This logic is tricky, let's just combine all reports and chats
   }
-
+  
+  const allChatItems = [...filteredReportAndArchivedChats, ...activeChatAsArray];
 
   if (loading || authLoading) {
     return (
@@ -99,26 +124,26 @@ export default function HistoryPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">
-              All ({allItems.length})
+              All ({filteredReports.length + activeChatAsArray.length})
             </TabsTrigger>
             <TabsTrigger value="reports">
               <FileText className="mr-2 h-4 w-4" />
-              Reports ({filteredReports.length})
+              Reports ({filteredReports.filter(r => r.type !== 'assistant').length})
             </TabsTrigger>
             <TabsTrigger value="chats">
               <MessageSquare className="mr-2 h-4 w-4" />
-              Chats ({filteredReportChats.length + (filteredAssistantChat ? 1 : 0)})
+              Chats ({allChatItems.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all">
-              <HistoryList items={allItems} type="all" />
+              <HistoryList items={[...filteredReports, ...activeChatAsArray]} type="all" />
           </TabsContent>
           <TabsContent value="reports">
-              <HistoryList items={filteredReports} type="reports" />
+              <HistoryList items={filteredReports.filter(r => r.type !== 'assistant')} type="reports" />
           </TabsContent>
           <TabsContent value="chats">
-               <HistoryList items={[...filteredReportChats, ...(filteredAssistantChat ? [filteredAssistantChat] : [])]} type="chats" />
+               <HistoryList items={allChatItems} type="chats" />
           </TabsContent>
         </Tabs>
       </div>
@@ -127,7 +152,7 @@ export default function HistoryPage() {
 }
 
 
-function HistoryList({ items, type }: { items: (Report | AssistantChat)[], type: 'all' | 'reports' | 'chats' }) {
+function HistoryList({ items, type }: { items: (Report | AssistantChat)[], type: string }) {
     if (items.length === 0) {
         return (
              <Card className="mt-4">
@@ -144,11 +169,11 @@ function HistoryList({ items, type }: { items: (Report | AssistantChat)[], type:
 
     return (
         <div className="space-y-4 mt-4">
-            {items.map(item => {
-                if ('name' in item) { // It's a Report
-                    return <ReportHistoryItem key={item.id} report={item} />;
-                } else if ('history' in item) { // It's an AssistantChat
-                    return <AssistantChatHistoryItem key={item.userId} chat={item} />;
+            {items.map((item, index) => {
+                if ('name' in item) { // It's a Report (including archived chats)
+                    return <ReportHistoryItem key={item.id || `report-${index}`} report={item} />;
+                } else if ('history' in item) { // It's an active AssistantChat
+                    return <AssistantChatHistoryItem key={item.userId || `chat-${index}`} chat={item} />;
                 }
                 return null;
             })}
@@ -157,6 +182,23 @@ function HistoryList({ items, type }: { items: (Report | AssistantChat)[], type:
 }
 
 function ReportHistoryItem({ report }: { report: Report }) {
+    if (report.type === 'assistant') {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <span className="flex items-center gap-2"><Bot /> {report.name}</span>
+                        <span className="text-sm font-normal text-muted-foreground">{format(new Date(report.createdAt), 'PP p')}</span>
+                    </CardTitle>
+                    <CardDescription>Archived AI health conversation.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChatHistory messages={report.chatHistory} />
+                </CardContent>
+            </Card>
+        )
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -167,7 +209,7 @@ function ReportHistoryItem({ report }: { report: Report }) {
                 <CardDescription>AI-generated summary and analysis.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-sm p-4 bg-muted/50 rounded-lg">{report.summary}</p>
+                {report.summary && <p className="text-sm p-4 bg-muted/50 rounded-lg">{report.summary}</p>}
                 {report.chatHistory.length > 0 && (
                      <details className="mt-4">
                         <summary className="cursor-pointer text-sm font-medium">View Conversation ({report.chatHistory.length} messages)</summary>
@@ -184,10 +226,10 @@ function AssistantChatHistoryItem({ chat }: { chat: AssistantChat }) {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2"><Bot /> AI Health Assistant</span>
-                    <span className="text-sm font-normal text-muted-foreground">Last updated {format(new Date(chat.updatedAt), 'PP')}</span>
+                    <span className="flex items-center gap-2"><Bot /> AI Health Assistant (Active)</span>
+                    <span className="text-sm font-normal text-muted-foreground">Last updated {format(new Date(chat.updatedAt), 'PP p')}</span>
                 </CardTitle>
-                 <CardDescription>General health Q&A conversation.</CardDescription>
+                 <CardDescription>Current general health Q&A conversation.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ChatHistory messages={chat.history} />
