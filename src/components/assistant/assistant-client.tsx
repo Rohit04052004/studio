@@ -140,7 +140,7 @@ export function AssistantClient() {
 
   return (
     <div className="flex flex-col items-center w-full">
-        <div className="text-center my-8">
+        <div className="text-center my-4">
             <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
                 <BrainCircuit className="h-10 w-10 text-primary" />
                 AI Health Assistant
