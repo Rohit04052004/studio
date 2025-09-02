@@ -191,7 +191,7 @@ export async function checkDbConnectionAction() {
       return { connected: false, error: "Database service is not initialized. Check service-account.json" };
     }
     // Attempt a simple read operation. This will fail if not authenticated.
-    await db.collection('__test_collection__').limit(1).get();
+    await db.collection('health_check').limit(1).get();
     return { connected: true };
   } catch (e: any) {
     console.error("Firebase connection test failed:", e.message);
