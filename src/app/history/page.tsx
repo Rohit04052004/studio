@@ -60,7 +60,7 @@ export default function HistoryPage() {
   const searchLower = searchTerm.toLowerCase();
 
   const filteredReports = reports.filter(report =>
-    report.name.toLowerCase().includes(searchLower) ||
+    (report.name && report.name.toLowerCase().includes(searchLower)) ||
     (report.summary && report.summary.toLowerCase().includes(searchLower)) ||
     (report.type === 'assistant' && report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower)))
   );
@@ -68,25 +68,31 @@ export default function HistoryPage() {
   const filteredReportAndArchivedChats = reports.filter(report => 
     report.chatHistory.length > 0 &&
     (
-        report.name.toLowerCase().includes(searchLower) ||
+        (report.name && report.name.toLowerCase().includes(searchLower)) ||
         report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower))
     )
   );
 
   const filteredActiveAssistantChat = assistantChat && assistantChat.history.some(m => m.content.toLowerCase().includes(searchLower)) ? assistantChat : null;
-  const activeChatAsArray = filteredActiveAssistantChat ? [filteredActiveAssistantChat] : [];
   
-  // Combine all items for the 'all' tab, avoiding duplicates
+  // Combine all items for the 'all' tab
   const allItems = [...filteredReports];
-  if (filteredActiveAssistantChat && !allItems.some(item => 'history' in item && item.userId === filteredActiveAssistantChat.userId)) {
-      allItems.unshift(filteredActiveAssistantChat);
+  if (filteredActiveAssistantChat) {
+      // Add active chat only if it's not already represented (e.g. by an archived version)
+      // This is a simple check, a more robust one would compare IDs if they existed
+      if(!allItems.find(item => 'history' in item && item.userId === filteredActiveAssistantChat.userId)) {
+          allItems.unshift(filteredActiveAssistantChat);
+      }
   }
   
   // Combine all chat items
   const allChatItems = [...filteredReportAndArchivedChats];
-   if (filteredActiveAssistantChat && !allChatItems.some(item => 'history' in item && item.userId === filteredActiveAssistantChat.userId)) {
-      allChatItems.unshift(filteredActiveAssistantChat);
+   if (filteredActiveAssistantChat) {
+       if(!allChatItems.find(item => 'history' in item && item.userId === filteredActiveAssistantChat.userId)) {
+          allChatItems.unshift(filteredActiveAssistantChat);
+       }
   }
+  const reportsOnly = filteredReports.filter(r => r.type !== 'assistant');
 
   if (loading || authLoading) {
     return (
@@ -131,7 +137,7 @@ export default function HistoryPage() {
             </TabsTrigger>
             <TabsTrigger value="reports">
               <FileText className="mr-2 h-4 w-4" />
-              Reports ({filteredReports.filter(r => r.type !== 'assistant').length})
+              Reports ({reportsOnly.length})
             </TabsTrigger>
             <TabsTrigger value="chats">
               <MessageSquare className="mr-2 h-4 w-4" />
@@ -143,7 +149,7 @@ export default function HistoryPage() {
               <HistoryList items={allItems} />
           </TabsContent>
           <TabsContent value="reports">
-              <HistoryList items={filteredReports.filter(r => r.type !== 'assistant')} />
+              <HistoryList items={reportsOnly} />
           </TabsContent>
           <TabsContent value="chats">
                <HistoryList items={allChatItems} />
@@ -172,7 +178,11 @@ function HistoryList({ items }: { items: (Report | AssistantChat)[] }) {
 
     return (
         <div className="space-y-4 mt-4">
-            {items.sort((a,b) => new Date('updatedAt' in b ? b.updatedAt : b.createdAt).getTime() - new Date('updatedAt' in a ? a.updatedAt : a.createdAt).getTime())
+            {items.sort((a,b) => {
+              const dateA = 'updatedAt' in a ? a.updatedAt : a.createdAt;
+              const dateB = 'updatedAt' in b ? b.updatedAt : b.createdAt;
+              return new Date(dateB).getTime() - new Date(dateA).getTime();
+            })
             .map((item, index) => {
                 if ('name' in item) { // It's a Report (including archived chats)
                     return <ReportHistoryItem key={item.id || `report-${index}`} report={item} />;
@@ -281,3 +291,5 @@ function ChatHistory({ messages }: { messages: Message[] }) {
         </ScrollArea>
     )
 }
+
+    

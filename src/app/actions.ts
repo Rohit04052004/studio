@@ -45,9 +45,15 @@ export async function processReportAction(userId: string, reportDataUri: string,
     revalidatePath('/reports');
     revalidatePath('/history');
 
+    // Return the report with the ID and correct date type for the client
+    const createdReport = (await docRef.get()).data() as Report;
     return {
       success: true,
-      report: { ...newReport, id: docRef.id } as Report,
+      report: { 
+        ...createdReport, 
+        id: docRef.id,
+        createdAt: createdReport.createdAt // This will be a Timestamp, gets serialized
+      } as Report,
     };
   } catch (error) {
     console.error('Error processing report:', error);
@@ -156,16 +162,17 @@ export async function getAssistantChatAction(userId: string): Promise<{ success:
             const chatData = assistantChatDoc.data();
             if (!chatData) return { success: true, chat: null };
 
+            // Data is serialized for the client, so we send ISO strings
             const chat: AssistantChat = {
                 userId,
                 history: chatData.history.map((msg: any) => ({
                     ...msg,
-                    createdAt: (msg.createdAt as Timestamp).toDate()
+                    createdAt: (msg.createdAt as Timestamp).toDate().toISOString()
                 })),
-                createdAt: (chatData.createdAt as Timestamp).toDate(),
-                updatedAt: (chatData.updatedAt as Timestamp).toDate(),
+                createdAt: (chatData.createdAt as Timestamp).toDate().toISOString(),
+                updatedAt: (chatData.updatedAt as Timestamp).toDate().toISOString(),
             };
-            return { success: true, chat };
+            return { success: true, chat: chat as any }; // Cast to any to match incompatible Date/string types
         } else {
             return { success: true, chat: null };
         }
@@ -184,7 +191,14 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
         const reportsRef = db.collection('reports');
         const q = reportsRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
         const querySnapshot = await q.get();
-        const reports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
+        const reports = querySnapshot.docs.map(doc => {
+             const data = doc.data();
+             return { 
+                id: doc.id, 
+                ...data,
+                createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+             } as unknown as Report
+        });
         return { success: true, reports };
     } catch (error) {
         console.error('Error fetching reports:', error);
@@ -206,13 +220,13 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
             return { 
                 id: doc.id, 
                 ...data,
-                // Ensure createdAt is a Date object for server components, will be serialized for client
-                createdAt: (data.createdAt as Timestamp).toDate(),
+                // Ensure createdAt is a string for client-side hydration
+                createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
                 chatHistory: data.chatHistory?.map((msg: any) => ({
                     ...msg,
-                    createdAt: (msg.createdAt as Timestamp).toDate()
+                    createdAt: (msg.createdAt as Timestamp).toDate().toISOString()
                 })) || []
-            } as Report;
+            } as unknown as Report;
         });
         
         // Fetch the current active assistant chat, if it exists
@@ -224,10 +238,10 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
             if (chatData) {
                 assistantChat = {
                     userId,
-                    history: chatData.history.map((msg: any) => ({ ...msg, createdAt: (msg.createdAt as Timestamp).toDate() })),
-                    createdAt: (chatData.createdAt as Timestamp).toDate(),
-                    updatedAt: (chatData.updatedAt as Timestamp).toDate(),
-                }
+                    history: chatData.history.map((msg: any) => ({ ...msg, createdAt: (msg.createdAt as Timestamp).toDate().toISOString() })),
+                    createdAt: (chatData.createdAt as Timestamp).toDate().toISOString(),
+                    updatedAt: (chatData.updatedAt as Timestamp).toDate().toISOString(),
+                } as unknown as AssistantChat
             }
         }
 
@@ -285,3 +299,5 @@ export async function healthCheck(): Promise<boolean> {
         return false;
     }
 }
+
+    

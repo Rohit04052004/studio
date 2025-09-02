@@ -3,7 +3,7 @@ export type Message = {
   role: 'user' | 'assistant';
   content: string;
   isPending?: boolean;
-  createdAt: Date;
+  createdAt: Date | string;
 };
 
 export type Report = {
@@ -16,7 +16,7 @@ export type Report = {
   summary?: string;
   highlightedSummary?: string;
   chatHistory: Message[];
-  createdAt: Date;
+  createdAt: Date | string;
 };
 
 export type UserProfile = {
@@ -24,14 +24,14 @@ export type UserProfile = {
   email: string;
   firstName: string;
   lastName:string;
-  createdAt: string; // Changed to string to support ISO date string from server
+  createdAt: string; 
 };
 
 export type AssistantChat = {
   userId: string;
   history: Message[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 };
 
     
