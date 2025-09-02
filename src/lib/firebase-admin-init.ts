@@ -1,4 +1,8 @@
+
 import * as admin from 'firebase-admin';
+
+let db: admin.firestore.Firestore | null = null;
+let auth: admin.auth.Auth | null = null;
 
 const projectId = process.env.FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -14,15 +18,20 @@ if (!admin.apps.length) {
           privateKey: privateKey.replace(/\\n/g, '\n'),
         }),
       });
+      console.log('Firebase Admin SDK initialized successfully.');
+      db = admin.firestore();
+      auth = admin.auth();
     } catch (error: any) {
       console.error('Firebase Admin SDK initialization error:', error.message);
     }
   } else {
-    console.error('Missing Firebase Admin SDK credentials in .env file.');
+    console.error('Missing Firebase Admin SDK credentials in .env file. Initialization skipped.');
   }
+} else {
+    // If the app is already initialized, just get the instances
+    db = admin.firestore();
+    auth = admin.auth();
 }
 
-const db = admin.firestore();
-const auth = admin.auth();
 
 export { db, auth };
