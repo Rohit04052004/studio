@@ -61,48 +61,56 @@ function UserProfileButton() {
         );
     }
     
+    const getInitials = () => {
+      if (profile) {
+        return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`;
+      }
+      return <User className="h-5 w-5" />;
+    }
+
     return (
-        <div className="flex flex-col items-end gap-2">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10">
+                <AvatarImage src={user.photoURL || `https://avatar.vercel.sh/${user.uid}.png`} alt={profile?.firstName || 'User'} data-ai-hint="person face" />
+                <AvatarFallback>
+                    {profileLoading ? <Skeleton className="h-10 w-10 rounded-full" /> : getInitials()}
+                </AvatarFallback>
+                </Avatar>
+            </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+                <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.photoURL || `https://avatar.vercel.sh/${user.uid}.png`} alt={profile?.firstName || 'User'} data-ai-hint="person face" />
-                    <AvatarFallback>
-                        <User className="h-5 w-5" />
-                    </AvatarFallback>
+                        <AvatarImage src={user.photoURL || `https://avatar.vercel.sh/${user.uid}.png`} alt={profile?.firstName || 'User'} data-ai-hint="person face" />
+                        <AvatarFallback>
+                             {profileLoading ? <Skeleton className="h-10 w-10 rounded-full" /> : getInitials()}
+                        </AvatarFallback>
                     </Avatar>
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{profile ? `${profile.firstName} ${profile.lastName}` : 'Anonymous User'}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                    </p>
+                        <p className="text-sm font-medium leading-none">{profile ? `${profile.firstName} ${profile.lastName}` : 'Anonymous User'}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                            {user.email}
+                        </p>
                     </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-            {profileLoading ? (
-                 <Skeleton className="h-4 w-20" />
-            ) : (
-                 <span className="text-xs text-muted-foreground">{profile?.firstName}</span>
-            )}
-        </div>
+                </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+                <Link href="/profile">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+            </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }
 
@@ -125,7 +133,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="hidden w-64 flex-col border-r bg-background p-4 sm:flex">
-       <SidebarHeader className="mb-8 flex items-start justify-between">
+       <SidebarHeader className="mb-8 flex items-center justify-between">
             <Logo />
             <UserProfileButton />
       </SidebarHeader>
