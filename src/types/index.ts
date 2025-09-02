@@ -24,7 +24,7 @@ export type UserProfile = {
   email: string;
   firstName: string;
   lastName:string;
-  createdAt: Date;
+  createdAt: string; // Changed to string to support ISO date string from server
 };
 
 export type AssistantChat = {

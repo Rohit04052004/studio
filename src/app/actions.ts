@@ -15,7 +15,7 @@ import type { Report, Message, UserProfile, AssistantChat } from '@/types';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db, auth } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
   try {
@@ -157,11 +157,37 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
             return { success: false, error: 'User profile not found in database.' };
         }
 
-        const profile = firestoreUserDoc.data() as UserProfile;
+        const profileData = firestoreUserDoc.data();
         
-        return { success: true, profile: { ...profile, email: userRecord.email! } };
+        if (!profileData) {
+            return { success: false, error: 'User profile data is empty.' };
+        }
+
+        const createdAt = (profileData.createdAt as Timestamp).toDate().toISOString();
+
+        const profile: UserProfile = {
+            uid: profileData.uid,
+            email: userRecord.email!,
+            firstName: profileData.firstName,
+            lastName: profileData.lastName,
+            createdAt: createdAt,
+        };
+        
+        return { success: true, profile: profile };
     } catch (error) {
         console.error('Error fetching user profile:', error);
         return { success: false, error: 'Failed to fetch user profile.' };
+    }
+}
+
+export async function healthCheck(): Promise<boolean> {
+    try {
+        const docRef = db.collection('health_check').doc('status');
+        await docRef.set({ status: 'ok', timestamp: FieldValue.serverTimestamp() });
+        await docRef.get();
+        return true;
+    } catch (error) {
+        console.error("Firebase health check failed:", error);
+        return false;
     }
 }
