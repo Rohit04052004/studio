@@ -338,17 +338,6 @@ export function AssistantClient() {
                     </div>
                  )}
             </div>
-            <div className="flex-1 text-right">
-                <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={handleNewChat}
-                    disabled={isClearing}
-                >
-                    {isClearing ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                    New Chat
-                </Button>
-            </div>
         </div>
 
         <Card className="w-full max-w-4xl mx-auto flex-grow flex flex-col">
@@ -356,6 +345,18 @@ export function AssistantClient() {
                 {renderContent()}
             </CardContent>
         </Card>
+        
+        <div className="w-full max-w-4xl mx-auto pt-4 px-4">
+            <Button 
+                variant="outline"
+                className="w-full"
+                onClick={handleNewChat}
+                disabled={isClearing}
+            >
+                {isClearing ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                New Chat
+            </Button>
+        </div>
     </div>
   );
 }
