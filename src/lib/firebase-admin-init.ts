@@ -6,31 +6,28 @@ let auth: admin.auth.Auth | null = null;
 
 const projectId = process.env.FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-const privateKeyBase64 = process.env.FIREBASE_PRIVATE_KEY_BASE64;
+const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
 if (!admin.apps.length) {
-  if (projectId && clientEmail && privateKeyBase64) {
+  if (projectId && clientEmail && privateKey) {
     try {
-      const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf-8');
-      
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId,
           clientEmail,
-          privateKey,
+          privateKey: privateKey.replace(/\\n/g, '\n'),
         }),
       });
       console.log('Firebase Admin SDK initialized successfully.');
       db = admin.firestore();
       auth = admin.auth();
     } catch (error: any) {
-      console.error('Firebase Admin SDK initialization error:', error.message);
+      console.error('Firebase Admin SDK initialization error:', error);
     }
   } else {
     console.error('Missing Firebase Admin SDK credentials in .env file. Initialization skipped.');
   }
 } else {
-    // If the app is already initialized, just get the instances
     db = admin.firestore();
     auth = admin.auth();
 }
