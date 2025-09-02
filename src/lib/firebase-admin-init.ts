@@ -6,16 +6,18 @@ let auth: admin.auth.Auth | null = null;
 
 const projectId = process.env.FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+const privateKeyBase64 = process.env.FIREBASE_PRIVATE_KEY_BASE64;
 
 if (!admin.apps.length) {
-  if (projectId && clientEmail && privateKey) {
+  if (projectId && clientEmail && privateKeyBase64) {
     try {
+      const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf-8');
+      
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId,
           clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n'),
+          privateKey,
         }),
       });
       console.log('Firebase Admin SDK initialized successfully.');
