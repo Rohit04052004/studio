@@ -2,14 +2,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 
-// This is a critical check to ensure the client-side environment variables are loaded.
-if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
-    console.error(
-        'Client-side Firebase environment variables are not set. ' +
-        'Please check your .env file and ensure that all variables prefixed with NEXT_PUBLIC_ are correctly defined.'
-    );
-}
-
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -23,6 +15,10 @@ const firebaseConfig = {
 export function getFirebaseApp(): FirebaseApp {
   if (getApps().length) {
     return getApp();
+  }
+  
+  if (!firebaseConfig.apiKey) {
+    throw new Error('Missing NEXT_PUBLIC_FIREBASE_API_KEY environment variable');
   }
   
   return initializeApp(firebaseConfig);
