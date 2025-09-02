@@ -52,7 +52,8 @@ export async function processReportAction(userId: string, reportDataUri: string,
       report: { 
         ...createdReport, 
         id: docRef.id,
-        createdAt: createdReport.createdAt // This will be a Timestamp, gets serialized
+        // Convert Timestamp to string for serialization
+        createdAt: (createdReport.createdAt as Timestamp).toDate().toISOString(),
       } as Report,
     };
   } catch (error) {
@@ -172,7 +173,7 @@ export async function getAssistantChatAction(userId: string): Promise<{ success:
                 createdAt: (chatData.createdAt as Timestamp).toDate().toISOString(),
                 updatedAt: (chatData.updatedAt as Timestamp).toDate().toISOString(),
             };
-            return { success: true, chat: chat as any }; // Cast to any to match incompatible Date/string types
+            return { success: true, chat };
         } else {
             return { success: true, chat: null };
         }
@@ -224,7 +225,7 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
                 createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
                 chatHistory: data.chatHistory?.map((msg: any) => ({
                     ...msg,
-                    createdAt: (msg.createdAt as Timestamp).toDate().toISOString()
+                    createdAt: (msg.createdAt.toDate ? msg.createdAt.toDate() : new Date(msg.createdAt)).toISOString()
                 })) || []
             } as unknown as Report;
         });
@@ -238,9 +239,9 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
             if (chatData) {
                 assistantChat = {
                     userId,
-                    history: chatData.history.map((msg: any) => ({ ...msg, createdAt: (msg.createdAt as Timestamp).toDate().toISOString() })),
-                    createdAt: (chatData.createdAt as Timestamp).toDate().toISOString(),
-                    updatedAt: (chatData.updatedAt as Timestamp).toDate().toISOString(),
+                    history: chatData.history.map((msg: any) => ({ ...msg, createdAt: (msg.createdAt.toDate ? msg.createdAt.toDate() : new Date(msg.createdAt)).toISOString() })),
+                    createdAt: (chatData.createdAt.toDate ? chatData.createdAt.toDate() : new Date(chatData.createdAt)).toISOString(),
+                    updatedAt: (chatData.updatedAt.toDate ? chatData.updatedAt.toDate() : new Date(chatData.updatedAt)).toISOString(),
                 } as unknown as AssistantChat
             }
         }
@@ -299,5 +300,3 @@ export async function healthCheck(): Promise<boolean> {
         return false;
     }
 }
-
-    
