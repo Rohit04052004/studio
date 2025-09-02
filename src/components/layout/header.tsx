@@ -23,7 +23,7 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/session', { method: 'DELETE' });
       router.push('/');
       router.refresh();
     } catch (error) {

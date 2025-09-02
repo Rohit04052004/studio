@@ -2,33 +2,39 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get('firebaseIdToken');
+export async function middleware(request: NextRequest) {
+  const sessionCookie = request.cookies.get('session');
   const { pathname } = request.nextUrl;
 
-  // The new public-facing dashboard page at '/'
-  const publicPaths = ['/', '/login', '/signup'];
-  const isPublicPath = publicPaths.includes(pathname);
+  const protectedRoutes = ['/dashboard', '/reports', '/assistant', '/history', '/profile'];
+  const isProtectedRoute = protectedRoutes.some(path => pathname.startsWith(path));
+  
+  const authRoutes = ['/login', '/signup'];
+  const isAuthRoute = authRoutes.includes(pathname);
 
-  // If the user is not authenticated and trying to access a protected page
-  if (!token && !isPublicPath) {
+  // If trying to access a protected route without a session, redirect to login
+  if (!sessionCookie && isProtectedRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
-  
-  // If the user is authenticated and trying to access a public page like login/signup
-  if (token && (pathname === '/login' || pathname === '/signup')) {
+
+  // If logged in, trying to access login/signup, redirect to dashboard
+  if (sessionCookie && isAuthRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   
   // If the user is authenticated and at the root, redirect to their dashboard
-  if (token && pathname === '/') {
+  if (sessionCookie && pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
+  // If the user is NOT authenticated and at the root, allow them to see the landing page
+  if (!sessionCookie && pathname === '/') {
+    return NextResponse.next();
+  }
+  
   return NextResponse.next();
 }
 
 export const config = {
-  // Excludes API routes, static files, and images from the middleware
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|service-account.json).*)'],
 };

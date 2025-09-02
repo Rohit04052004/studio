@@ -52,21 +52,15 @@ export function LoginForm() {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const idToken = await userCredential.user.getIdToken();
       
-      await fetch('/api/auth/login', {
+      // Use the server-side session endpoint
+      await fetch('/api/auth/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken }),
       });
       
-      // Sync user profile to Firestore, but don't wait for it
-      fetch('/api/sync-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, firstName: 'N/A', lastName: 'N/A' }), // Names are not available at login
-      }).catch(err => console.error("Error syncing user on login:", err));
-
-
-      router.push('/dashboard');
+      // The router.refresh() is crucial to update client-side state
+      // and re-evaluate the middleware for redirection.
       router.refresh();
 
     } catch (error: any) {
