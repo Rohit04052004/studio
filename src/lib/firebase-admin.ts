@@ -1,12 +1,19 @@
 
 import * as admin from 'firebase-admin';
-import serviceAccount from '../../serviceAccountKey.json';
+import serviceAccountInfo from '../../serviceAccountKey.json';
 
 // This function will initialize the admin app if it's not already initialized
 // and return the auth and firestore services.
 export function getAdminInstances() {
     if (!admin.apps.length) {
         try {
+            // The service account object has to be parsed and the private key's newlines have to be replaced
+            // to be correctly interpreted by the Firebase Admin SDK.
+            const serviceAccount = {
+                ...serviceAccountInfo,
+                private_key: serviceAccountInfo.private_key.replace(/\\n/g, '\n'),
+            }
+            
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount as any),
                 databaseURL: "https://medreport-clarity.firebaseio.com"
