@@ -14,41 +14,12 @@ import { healthAssistant } from '@/ai/flows/health-assistant-flow';
 import type { Report, Message, UserProfile, AssistantChat } from '@/types';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import * as admin from 'firebase-admin';
-
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-      }),
-    });
-  } catch (error) {
-    console.error('Firebase Admin SDK initialization error:', error);
-  }
-}
-
-let db;
-try {
-  db = admin.firestore();
-} catch (error) {
-  console.error('Firestore initialization error:', error);
-}
-
-let auth;
-try {
-  auth = admin.auth();
-} catch (error) {
-  console.error('Auth initialization error:', error);
-}
-
+import { db, auth } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
   if (!db) {
-    return { success: false, error: 'Database service is unavailable.' };
+    return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
   }
   try {
     const summaryResult = await summarizeMedicalReport({ reportDataUri });
@@ -88,7 +59,7 @@ export async function processReportAction(userId: string, reportDataUri: string,
 
 export async function askQuestionAction(reportId: string, context: string, question: string) {
     if (!db) {
-      return { success: false, error: 'Database service is unavailable.' };
+      return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
     }
     try {
         const result = await answerReportQuestionsViaChat({ reportText: context, question });
@@ -97,7 +68,7 @@ export async function askQuestionAction(reportId: string, context: string, quest
 
         const reportRef = db.collection('reports').doc(reportId);
         await reportRef.update({
-            chatHistory: admin.firestore.FieldValue.arrayUnion(userMessage, assistantMessage)
+            chatHistory: FieldValue.arrayUnion(userMessage, assistantMessage)
         });
         revalidatePath('/reports');
         revalidatePath('/history');
@@ -110,7 +81,7 @@ export async function askQuestionAction(reportId: string, context: string, quest
 
 export async function askHealthAssistantAction(userId: string, question: string, existingHistory: Message[]) {
     if (!db) {
-      return { success: false, error: 'Database service is unavailable.' };
+      return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
     }
     try {
         const result = await healthAssistant({ question, history: existingHistory });
@@ -123,7 +94,7 @@ export async function askHealthAssistantAction(userId: string, question: string,
 
         if (chatDoc.exists) {
              await chatRef.update({
-                history: admin.firestore.FieldValue.arrayUnion(userMessage, assistantMessage),
+                history: FieldValue.arrayUnion(userMessage, assistantMessage),
                 updatedAt: new Date(),
             });
         } else {
@@ -147,7 +118,7 @@ export async function askHealthAssistantAction(userId: string, question: string,
 
 export async function getReportsAction(userId: string): Promise<{ success: boolean; reports?: Report[]; error?: string; }> {
     if (!db) {
-        return { success: false, error: 'Database service is unavailable.' };
+        return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
     }
     if (!userId) {
         return { success: true, reports: [] };
@@ -166,7 +137,7 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
 
 export async function getHistoryAction(userId: string): Promise<{ success: boolean; reports?: Report[]; assistantChat?: AssistantChat | null; error?: string; }> {
     if (!db) {
-        return { success: false, error: 'Database service is unavailable.' };
+        return { success: false, error: 'Database service is unavailable. Please check server configuration.' };
     }
     if (!userId) {
         return { success: true, reports: [], assistantChat: null };
@@ -191,7 +162,7 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
 
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
     if (!auth || !db) {
-        return { success  : false, error: 'Authentication or database service is unavailable.' };
+        return { success  : false, error: 'Authentication or database service is unavailable. Please check server configuration.' };
     }
     if (!userId) {
         return { success: false, error: 'User not found' };
@@ -217,7 +188,7 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
 export async function checkDbConnectionAction() {
   try {
     if (!db) {
-      return { connected: false, error: "Database service is not initialized" };
+      return { connected: false, error: "Database service is not initialized. Check service-account.json" };
     }
     // Attempt a simple read operation. This will fail if not authenticated.
     await db.collection('__test_collection__').limit(1).get();

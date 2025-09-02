@@ -1,43 +1,36 @@
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
+import type { App } from 'firebase-admin/app';
+import { getApps } from 'firebase-admin/app';
+import path from 'path';
+import fs from 'fs';
 
-let db: admin.firestore.Firestore | null = null;
-let auth: admin.auth.Auth | null = null;
+let adminApp: App;
 
-if (!admin.apps.length) {
-  const {
-    FIREBASE_PROJECT_ID,
-    FIREBASE_CLIENT_EMAIL,
-    FIREBASE_PRIVATE_KEY_BASE64
-  } = process.env;
-
-  if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY_BASE64) {
-    console.error('Missing required Firebase Admin SDK environment variables.');
-  } else {
-    try {
-      const privateKey = Buffer.from(FIREBASE_PRIVATE_KEY_BASE64, 'base64').toString('utf-8');
-      
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: FIREBASE_PROJECT_ID,
-          clientEmail: FIREBASE_CLIENT_EMAIL,
-          privateKey,
-        }),
+if (getApps().length === 0) {
+  const serviceAccountPath = path.resolve('./service-account.json');
+  
+  try {
+    if (fs.existsSync(serviceAccountPath)) {
+      adminApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccountPath)
       });
-
-      console.log('Firebase Admin SDK initialized successfully.');
-      db = admin.firestore();
-      auth = admin.auth();
-
-    } catch (error: any) {
-      console.error('Firebase Admin SDK initialization error:', error.message);
-      // Log the full error for more details, which can be helpful
-      console.error(error);
+    } else {
+      console.warn("service-account.json not found, attempting to use Application Default Credentials.");
+      adminApp = admin.initializeApp({
+        credential: admin.credential.applicationDefault()
+      });
     }
+  } catch (error) {
+    console.error('Firebase admin initialization error', error);
+    // We are not throwing the error here to avoid crashing the server
+    // The db and auth exports will be null, and handled in the actions/routes.
   }
 } else {
-    db = admin.firestore();
-    auth = admin.auth();
+  adminApp = admin.app();
 }
+
+const db = adminApp! ? admin.firestore(adminApp) : null;
+const auth = adminApp! ? admin.auth(adminApp) : null;
 
 export { db, auth };

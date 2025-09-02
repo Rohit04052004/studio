@@ -1,40 +1,11 @@
 
-import * as admin from 'firebase-admin';
 import { NextRequest, NextResponse } from 'next/server';
-
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-      }),
-    });
-  } catch (error) {
-    console.error('Firebase Admin SDK initialization error:', error);
-  }
-}
-
-let db;
-try {
-  db = admin.firestore();
-} catch (error) {
-  console.error('Firestore initialization error:', error);
-}
-
-let auth;
-try {
-  auth = admin.auth();
-} catch (error) {
-  console.error('Auth initialization error:', error);
-}
-
+import { db, auth } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(req: NextRequest) {
   if (!auth || !db) {
-    return NextResponse.json({ error: 'Firebase admin not initialized.' }, { status: 500 });
+    return NextResponse.json({ error: 'Firebase admin not initialized. Check server configuration.' }, { status: 500 });
   }
 
   try {
@@ -54,7 +25,7 @@ export async function POST(req: NextRequest) {
       email,
       firstName,
       lastName,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     };
 
     // Use set with merge:true to create or update the document
