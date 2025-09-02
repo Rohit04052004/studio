@@ -9,13 +9,10 @@ export function getAdminInstances() {
         try {
             // The service account object has to be parsed and the private key's newlines have to be replaced
             // to be correctly interpreted by the Firebase Admin SDK.
-            const serviceAccount = {
-                ...serviceAccountInfo,
-                private_key: serviceAccountInfo.private_key.replace(/\\n/g, '\n'),
-            }
+            const serviceAccount = serviceAccountInfo as admin.ServiceAccount
             
             admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount as any),
+                credential: admin.credential.cert(serviceAccount),
                 databaseURL: "https://medreport-clarity.firebaseio.com"
             });
         } catch (error: any) {
