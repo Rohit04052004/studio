@@ -127,7 +127,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
               <TabsTrigger value="chats">
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Chats ({allChatItems.length})
-              </Tabs-Trigger>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="all">
@@ -292,3 +292,5 @@ function ChatHistory({ messages }: { messages: Message[] }) {
         </ScrollArea>
     )
 }
+
+    
