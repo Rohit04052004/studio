@@ -71,12 +71,10 @@ export function SignUpForm() {
     }
 
     try {
-      // Step 1: Create user with Firebase Auth (client-side)
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       const idToken = await user.getIdToken();
 
-      // Step 2: Call API route to save user profile to Firestore
       const syncResult = await fetch('/api/sync-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +90,6 @@ export function SignUpForm() {
         throw new Error(errorData.error || 'Failed to save user profile.');
       }
       
-      // Step 3: Success and redirect
       toast({
           title: 'Account Created!',
           description: 'Your account has been successfully created. Please log in.',
@@ -103,14 +100,9 @@ export function SignUpForm() {
       let title = 'Sign Up Failed';
       let description = 'An unexpected error occurred. Please try again.';
 
-      // Handle client-side auth errors
       if (error.code === 'auth/email-already-in-use') {
         description = 'This email address is already in use by another account.';
-      } else if (error.message === "Firebase admin not initialized.") {
-          description = "Server error: Could not save user profile. Please contact support."
-      }
-      // Handle server-side action errors
-      else if (error.message) {
+      } else if (error.message) {
         description = error.message;
       }
       

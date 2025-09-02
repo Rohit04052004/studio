@@ -8,36 +8,29 @@ import { Layout } from '@/components/layout/layout';
 import { useState, useEffect, ReactNode } from 'react';
 import { onIdTokenChanged, User } from 'firebase/auth';
 import { AuthContext, useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { auth } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (auth) {
       const unsubscribe = onIdTokenChanged(auth, (user) => {
         setUser(user);
         setLoading(false);
-        if (user) {
-            // If user logs in, ensure they are on the dashboard
-            if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
-                router.push('/dashboard');
-            }
-        } else {
-            // If user logs out, ensure they are on the login page
-            if (window.location.pathname.startsWith('/dashboard')) {
-                 router.push('/login');
-            }
+        if (!user && pathname !== '/login' && pathname !== '/signup' && pathname !== '/') {
+            router.push('/login');
         }
       });
       return () => unsubscribe();
     } else {
       setLoading(false);
     }
-  }, [auth, router]);
+  }, [auth, router, pathname]);
 
   return (
     <AuthContext.Provider value={{ user, auth, loading }}>
