@@ -10,6 +10,7 @@ import { onIdTokenChanged, User, getAuth, Auth } from 'firebase/auth';
 import { getFirebaseApp } from '@/lib/firebase';
 import { AuthContext } from '@/hooks/use-auth';
 
+// Initialize Firebase and Auth outside the component to ensure it's a singleton.
 const app = getFirebaseApp();
 const authInstance = getAuth(app);
 
