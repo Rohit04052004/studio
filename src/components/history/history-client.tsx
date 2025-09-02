@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Report, AssistantChat, Message } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,35 @@ interface HistoryClientProps {
     initialReports: Report[];
     initialAssistantChat: AssistantChat | null;
 }
+
+const ClientFormattedDate = ({ date }: { date: string | Date }) => {
+    const [formattedDate, setFormattedDate] = useState<string>('');
+
+    useEffect(() => {
+        setFormattedDate(format(new Date(date), 'PP'));
+    }, [date]);
+
+    if (!formattedDate) {
+        return null; // Or a placeholder/skeleton
+    }
+
+    return <>{formattedDate}</>;
+};
+
+const ClientFormattedDateTime = ({ date }: { date: string | Date }) => {
+    const [formattedDate, setFormattedDate] = useState<string>('');
+
+    useEffect(() => {
+        setFormattedDate(format(new Date(date), 'PP p'));
+    }, [date]);
+
+    if (!formattedDate) {
+        return null; // Or a placeholder/skeleton
+    }
+
+    return <>{formattedDate}</>;
+};
+
 
 export function HistoryClient({ initialReports, initialAssistantChat }: HistoryClientProps) {
   const [reports] = useState<Report[]>(initialReports);
@@ -215,7 +244,9 @@ function ReportHistoryItem({ report, onCardClick }: { report: Report, onCardClic
                         {isArchivedChat ? <Bot /> : <FileText />} 
                         {report.name}
                     </span>
-                    <span className="text-sm font-normal text-muted-foreground">{format(new Date(report.createdAt), 'PP')}</span>
+                    <span className="text-sm font-normal text-muted-foreground">
+                        <ClientFormattedDate date={report.createdAt} />
+                    </span>
                 </CardTitle>
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
@@ -232,7 +263,9 @@ function AssistantChatHistoryItem({ chat, onCardClick }: { chat: AssistantChat, 
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2"><Bot /> AI Health Assistant (Active)</span>
-                    <span className="text-sm font-normal text-muted-foreground">Last updated {format(new Date(chat.updatedAt), 'PP p')}</span>
+                    <span className="text-sm font-normal text-muted-foreground">
+                        Last updated <ClientFormattedDateTime date={chat.updatedAt} />
+                    </span>
                 </CardTitle>
                  <CardDescription>Current general health Q&A conversation.</CardDescription>
             </CardHeader>
@@ -292,5 +325,3 @@ function ChatHistory({ messages }: { messages: Message[] }) {
         </ScrollArea>
     )
 }
-
-    
