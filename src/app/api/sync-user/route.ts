@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
+    // Use set with merge:true to create or update the document
     await userRef.set(data, { merge: true });
 
     return NextResponse.json({ success: true, message: 'User synced successfully.' });
