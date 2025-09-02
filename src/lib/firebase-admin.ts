@@ -15,7 +15,7 @@ export function getAdminInstances() {
 
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
-                databaseURL: `https://medreport-clarity.firebaseio.com`
+                databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
             });
         } catch (error: any) {
             console.error('Firebase Admin SDK initialization error:', error.message);
