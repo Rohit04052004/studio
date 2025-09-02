@@ -1,5 +1,10 @@
+
 import { AssistantClient } from '@/components/assistant/assistant-client';
 
 export default function AssistantPage() {
-  return <AssistantClient />;
+  return (
+    <div className="h-full flex flex-col">
+        <AssistantClient />
+    </div>
+  )
 }
