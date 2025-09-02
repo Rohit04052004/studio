@@ -11,11 +11,40 @@ import {
   answerReportQuestionsViaChat,
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
-import { db, auth } from '@/lib/firebase-admin';
 import type { Report, Message, UserProfile, AssistantChat } from '@/types';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import * as admin from 'firebase-admin';
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      }),
+    });
+  } catch (error) {
+    console.error('Firebase Admin SDK initialization error:', error);
+  }
+}
+
+let db;
+try {
+  db = admin.firestore();
+} catch (error) {
+  console.error('Firestore initialization error:', error);
+}
+
+let auth;
+try {
+  auth = admin.auth();
+} catch (error) {
+  console.error('Auth initialization error:', error);
+}
+
 
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
   if (!db) {
@@ -162,22 +191,22 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
 
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
     if (!auth || !db) {
-        return { success: false, error: 'Authentication or database service is unavailable.' };
+        return { success  : false, error: 'Authentication or database service is unavailable.' };
     }
     if (!userId) {
         return { success: false, error: 'User not found' };
     }
     try {
-        const userDoc = await auth.getUser(userId);
-        const firestoreUserDoc = await db.collection('users').where('uid', '==', userId).get();
+        const userRecord = await auth.getUser(userId);
+        const firestoreUserDoc = await db.collection('users').doc(userId).get();
         
-        if (firestoreUserDoc.empty) {
+        if (!firestoreUserDoc.exists) {
             return { success: false, error: 'User profile not found in database.' };
         }
 
-        const profile = firestoreUserDoc.docs[0].data() as UserProfile;
+        const profile = firestoreUserDoc.data() as UserProfile;
         
-        return { success: true, profile };
+        return { success: true, profile: { ...profile, email: userRecord.email! } };
     } catch (error) {
         console.error('Error fetching user profile:', error);
         return { success: false, error: 'Failed to fetch user profile.' };
@@ -188,7 +217,7 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
 export async function checkDbConnectionAction() {
   try {
     if (!db) {
-      return { connected: false, error: "Database service is not initialized in firebase-admin-init.ts" };
+      return { connected: false, error: "Database service is not initialized" };
     }
     // Attempt a simple read operation. This will fail if not authenticated.
     await db.collection('__test_collection__').limit(1).get();

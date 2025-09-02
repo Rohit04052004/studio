@@ -106,7 +106,9 @@ export function SignUpForm() {
       // Handle client-side auth errors
       if (error.code === 'auth/email-already-in-use') {
         description = 'This email address is already in use by another account.';
-      } 
+      } else if (error.message === "Firebase admin not initialized.") {
+          description = "Server error: Could not save user profile. Please contact support."
+      }
       // Handle server-side action errors
       else if (error.message) {
         description = error.message;
