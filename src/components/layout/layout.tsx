@@ -10,7 +10,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/signup';
   const isLandingPage = pathname === '/';
 
-  // For auth pages, render children without the main layout
   if (isAuthPage) {
     return <main>{children}</main>;
   }
@@ -25,7 +24,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     </div>
   );
 
-  // For landing page, render with a simplified layout (no sidebar if you prefer)
   if (isLandingPage) {
       return (
         <SidebarProvider>
@@ -34,7 +32,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       )
   }
 
-  // Main application layout for authenticated users
   return (
     <SidebarProvider>
       <MainLayout>{children}</MainLayout>
