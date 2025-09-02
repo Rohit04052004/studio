@@ -6,9 +6,74 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Bot, History, ShieldCheck, ArrowRight, Server, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FileText, Bot, History, ShieldCheck, ArrowRight, Server, AlertCircle, CheckCircle2, Terminal } from 'lucide-react';
 import Link from 'next/link';
 import { checkDbConnectionAction } from './actions';
+
+async function EnvCheckCard() {
+    let envStatus = null;
+    try {
+        const res = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://' + process.env.NEXT_PUBLIC_VERCEL_URL : 'http://localhost:9002'}/api/check-env`, { cache: 'no-store' });
+        if(res.ok) {
+            envStatus = await res.json();
+        }
+    } catch (error) {
+        console.error("Failed to fetch env status", error);
+    }
+    
+    if (!envStatus) return null;
+
+    const allServerSet = Object.values(envStatus.serverEnv).every(Boolean);
+    const allClientSet = Object.values(envStatus.clientEnv).every(Boolean);
+
+    return (
+         <Card className="max-w-2xl mx-auto mb-8 border-yellow-400/50">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 justify-center">
+                    <Terminal className="h-6 w-6" />
+                    Environment Variable Status
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+               <div>
+                 <h4 className="font-semibold mb-2 text-center">Server (.env)</h4>
+                 <ul className="space-y-1 text-xs">
+                    {Object.entries(envStatus.serverEnv).map(([key, value]) => (
+                        <li key={key} className="flex items-center justify-between p-1 bg-muted/50 rounded-sm">
+                            <span className="font-mono">{key}</span>
+                            {value ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <AlertCircle className="h-4 w-4 text-red-400" />}
+                        </li>
+                    ))}
+                 </ul>
+               </div>
+                <div>
+                 <h4 className="font-semibold mb-2 text-center">Client (NEXT_PUBLIC_)</h4>
+                 <ul className="space-y-1 text-xs">
+                    {Object.entries(envStatus.clientEnv).map(([key, value]) => (
+                        <li key={key} className="flex items-center justify-between p-1 bg-muted/50 rounded-sm">
+                            <span className="font-mono">{key}</span>
+                            {value ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <AlertCircle className="h-4 w-4 text-red-400" />}
+                        </li>
+                    ))}
+                 </ul>
+               </div>
+                 <div className="md:col-span-2 text-center text-sm mt-2">
+                    {allServerSet && allClientSet ? (
+                         <div className="flex items-center justify-center gap-2 text-green-400">
+                            <CheckCircle2 />
+                            <p className="font-semibold">All variables loaded correctly!</p>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center gap-2 text-red-400">
+                            <AlertCircle />
+                            <p className="font-semibold">Some variables are missing. Check your .env file and restart the server.</p>
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 
 export default async function LandingPage() {
@@ -17,6 +82,8 @@ export default async function LandingPage() {
   return (
     <div className="flex flex-col gap-12">
       <section className="text-center">
+
+        <EnvCheckCard />
 
         <Card className="max-w-md mx-auto mb-8">
             <CardHeader>
