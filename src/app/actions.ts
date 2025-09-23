@@ -134,7 +134,7 @@ export async function archiveAssistantChatAction(userId: string) {
                  // Create a new report document to archive the chat
                 const archiveReport: Omit<Report, 'id'> = {
                     userId,
-                    name: `AI Assistant Chat - ${format(new Date(), 'PP p')}`,
+                    name: `Archived AI Assistant Chat`,
                     type: 'assistant',
                     chatHistory: chatData.history,
                     createdAt: chatData.updatedAt, // Use the last updated time as creation time

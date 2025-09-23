@@ -11,7 +11,7 @@ import { FileText, History, ListFilter, MessageSquare, Search, Bot, User, X, Tra
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { deleteReportAction, archiveAssistantChatAction } from '@/app/actions';
@@ -22,20 +22,6 @@ interface HistoryClientProps {
     initialReports: Report[];
     initialAssistantChat: AssistantChat | null;
 }
-
-const ClientFormattedDate = ({ date }: { date: string | Date }) => {
-    const [formattedDate, setFormattedDate] = useState<string>('');
-
-    useEffect(() => {
-        setFormattedDate(format(new Date(date), 'PP'));
-    }, [date]);
-
-    if (!formattedDate) {
-        return null; 
-    }
-
-    return <>{formattedDate}</>;
-};
 
 const ClientFormattedDateTime = ({ date }: { date: string | Date }) => {
     const [formattedDate, setFormattedDate] = useState<string>('');
@@ -48,6 +34,18 @@ const ClientFormattedDateTime = ({ date }: { date: string | Date }) => {
         return null;
     }
 
+    return <>{formattedDate}</>;
+};
+
+const ClientFormattedRelativeTime = ({ date }: { date: string | Date }) => {
+    const [formattedDate, setFormattedDate] = useState<string>('');
+    useEffect(() => {
+        setFormattedDate(formatDistanceToNow(new Date(date), { addSuffix: true }));
+    }, [date]);
+
+    if (!formattedDate) {
+        return null;
+    }
     return <>{formattedDate}</>;
 };
 
@@ -129,7 +127,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
              const newReport: Report = {
                 id: `archived-${Date.now()}`,
                 userId: user.uid,
-                name: `AI Assistant Chat - ${format(new Date(archivedChat.updatedAt), 'PP p')}`,
+                name: `Archived AI Assistant Chat`,
                 type: 'assistant',
                 chatHistory: archivedChat.history,
                 createdAt: archivedChat.updatedAt,
@@ -285,7 +283,7 @@ function ReportHistoryItem({ report, onCardClick, onDelete, isPending }: { repor
                             {report.name}
                         </span>
                         <span className="text-sm font-normal text-muted-foreground">
-                            <ClientFormattedDate date={report.createdAt} />
+                            <ClientFormattedRelativeTime date={report.createdAt} />
                         </span>
                     </CardTitle>
                     <CardDescription>{description}</CardDescription>
@@ -318,7 +316,7 @@ function ReportHistoryItem({ report, onCardClick, onDelete, isPending }: { repor
                     </AlertDialogContent>
                 </AlertDialog>
             </CardFooter>
-        </Card>
+        </Card>>
     )
 }
 
@@ -330,7 +328,7 @@ function AssistantChatHistoryItem({ chat, onCardClick, onArchive, isPending }: {
                     <CardTitle className="flex items-center justify-between">
                         <span className="flex items-center gap-2"><Bot /> AI Health Assistant (Active)</span>
                         <span className="text-sm font-normal text-muted-foreground">
-                            Last updated <ClientFormattedDateTime date={chat.updatedAt} />
+                            <ClientFormattedRelativeTime date={chat.updatedAt} />
                         </span>
                     </CardTitle>
                     <CardDescription>Current general health Q&A conversation.</CardDescription>
