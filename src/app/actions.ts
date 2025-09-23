@@ -108,9 +108,6 @@ export async function askHealthAssistantAction(userId: string, question: string,
                 updatedAt: new Date(),
             });
         }
-
-        revalidatePath('/assistant');
-        revalidatePath('/history');
         
         return { success: true, answer: result.answer, newMessages: [userMessage, assistantMessage] };
     } catch (error) {
@@ -339,3 +336,4 @@ export async function healthCheck(): Promise<boolean> {
     
 
     
+
