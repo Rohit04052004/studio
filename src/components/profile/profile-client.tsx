@@ -96,6 +96,7 @@ export function ProfileClient() {
       const result = await updateUserProfileAction(user.uid, { firstName, lastName });
       if (result.success) {
         toast({ title: 'Success', description: 'Your profile has been updated.' });
+        router.refresh();
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error });
       }
