@@ -191,7 +191,7 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
     }
     try {
         const reportsRef = db.collection('reports');
-        const q = reportsRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
+        const q = reportsRef.where('userId', '==', userId);
         const querySnapshot = await q.get();
         const reports = querySnapshot.docs.map(doc => {
              const data = doc.data();
@@ -206,6 +206,10 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
                 createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
              } as unknown as Report
         });
+
+        // Sort reports in code to avoid needing a composite index
+        reports.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+
         return { success: true, reports };
     } catch (error) {
         console.error('Error fetching reports:', error);

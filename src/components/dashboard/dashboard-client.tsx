@@ -27,10 +27,10 @@ export function DashboardClient() {
         setIsLoading(true);
         const result = await getReportsAction(user.uid);
         if (result.success && result.reports) {
-          const sortedReports = result.reports.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
-          setReports(sortedReports);
-          if (sortedReports.length > 0 && !selectedReportId) {
-            setSelectedReportId(sortedReports[0].id);
+          // The sorting is now done in the server action
+          setReports(result.reports);
+          if (result.reports.length > 0 && !selectedReportId) {
+            setSelectedReportId(result.reports[0].id);
           }
         } else {
           toast({
