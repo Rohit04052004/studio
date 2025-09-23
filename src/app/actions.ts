@@ -21,7 +21,7 @@ import { format } from 'date-fns';
 export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
   try {
     const summaryResult = await summarizeMedicalReport({ reportDataUri });
-    const highlightedResult = await highlightAbnormalResults({ summary: summaryResult.summary });
+    const highlightedResult = await highlightAbnormalResults({ reportSummary: summaryResult.summary });
     
     let originalText;
     if (fileType.startsWith('text/')) {
@@ -314,5 +314,7 @@ export async function healthCheck(): Promise<boolean> {
         return false;
     }
 }
+
+    
 
     
