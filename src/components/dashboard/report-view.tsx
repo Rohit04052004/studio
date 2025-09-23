@@ -16,7 +16,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger 
+  DialogTrigger,
+  DialogDescription
 } from '@/components/ui/dialog';
 
 export function ReportView({ report, isLoading }: { report: Report | null, isLoading: boolean }) {
@@ -29,12 +30,10 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
-                    <Skeleton className="h-4 w-1/5" />
-                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-10 w-full" />
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                    <Skeleton className="h-4 w-1/4" />
                     <Skeleton className="h-10 w-full" />
                 </div>
             </CardContent>
@@ -66,20 +65,34 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
             </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
-          <h4 className="font-semibold mb-2 flex items-center gap-2"><Bot className="h-5 w-5" /> Summary</h4>
-          <ScrollArea className="h-full max-h-60 w-full rounded-md border">
-            <div className="p-4 bg-muted/50">
-              <Markdown content={report.highlightedSummary || report.summary || 'No summary available.'} />
-            </div>
-          </ScrollArea>
-        </div>
+      <CardContent className="space-y-4">
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                    <Bot className="mr-2 h-4 w-4" />
+                    View AI Summary
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>AI-Generated Summary</DialogTitle>
+                    <DialogDescription>
+                        Analysis of: {report.name}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex-grow overflow-hidden">
+                    <ScrollArea className="h-full w-full rounded-md border">
+                        <div className="p-4 bg-muted/50 h-full">
+                        <Markdown content={report.highlightedSummary || report.summary || 'No summary available.'} />
+                        </div>
+                    </ScrollArea>
+                </div>
+            </DialogContent>
+        </Dialog>
 
         <Separator />
         
-        <div>
-           <Dialog>
+        <Dialog>
             <DialogTrigger asChild>
                 <Button variant="outline" className="w-full">
                     <Eye className="mr-2 h-4 w-4" />
@@ -107,8 +120,8 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
                     </ScrollArea>
                 </div>
             </DialogContent>
-           </Dialog>
-        </div>
+        </Dialog>
+
         <div className="flex items-start space-x-2 rounded-lg border border-yellow-200/50 bg-yellow-950/30 p-3 text-yellow-200">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-400" />
           <p className="text-xs">
