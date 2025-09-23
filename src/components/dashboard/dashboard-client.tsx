@@ -41,8 +41,7 @@ export function DashboardClient() {
         setReports([]);
         setSelectedReportId(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading]);
+  }, [user, authLoading, toast]);
 
 
   const selectedReport = useMemo(
