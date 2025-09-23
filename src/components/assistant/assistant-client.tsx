@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, User, Bot, LoaderCircle, ShieldAlert, BrainCircuit, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { askHealthAssistantAction, getAssistantChatAction, deleteAssistantChatAction } from '@/app/actions';
+import { askHealthAssistantAction, getAssistantChatAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { Markdown } from '@/components/markdown';
 import { useAuth } from '@/hooks/use-auth';
@@ -198,7 +198,7 @@ export function AssistantClient() {
             if (result.success && result.chat && result.chat.history.length > 0) {
                 const historyWithDates = result.chat.history.map(m => ({
                     ...m,
-                    createdAt: new Date(m.createdAt)
+                    createdAt: new Date(m.createdAt as string)
                 }));
                 setMessages(historyWithDates);
                 setIsInitialLoad(false);
@@ -242,8 +242,8 @@ export function AssistantClient() {
         setIsInitialLoad(false);
     }
     
-    const currentHistory = messages;
-    setMessages([...currentHistory, userMessage, { role: 'assistant', content: '', isPending: true, createdAt: new Date() }]);
+    const currentHistory = messages.map(m => ({...m, createdAt: (m.createdAt as Date).toISOString()}));
+    setMessages([...messages, userMessage, { role: 'assistant', content: '', isPending: true, createdAt: new Date() }]);
     setInput('');
 
     startTransition(async () => {

@@ -26,7 +26,7 @@ export async function processReportAction(userId: string, reportDataUri: string,
     const isTextFile = fileType.startsWith('text/');
     const isImageFile = fileType.startsWith('image/');
 
-    const newReport: Omit<Report, 'id' | 'originalText' | 'content'> = {
+    const newReport: Partial<Report> = {
       userId,
       name: fileName,
       type: isImageFile ? 'image' : 'text',
@@ -37,11 +37,11 @@ export async function processReportAction(userId: string, reportDataUri: string,
     };
 
     if (isImageFile) {
-        (newReport as Partial<Report>).content = reportDataUri;
+        newReport.content = reportDataUri;
     }
 
     if (isTextFile) {
-        (newReport as Partial<Report>).originalText = fileContent;
+        newReport.originalText = fileContent;
     }
 
     const docRef = await db.collection('reports').add(newReport);
@@ -336,4 +336,5 @@ export async function healthCheck(): Promise<boolean> {
     
 
     
+
 
