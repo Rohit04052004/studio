@@ -7,10 +7,17 @@ import NextImage from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, FileText, Bot } from 'lucide-react';
+import { AlertCircle, FileText, Bot, Eye } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Markdown } from '../markdown';
-
+import { Button } from '@/components/ui/button';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from '@/components/ui/dialog';
 
 export function ReportView({ report, isLoading }: { report: Report | null, isLoading: boolean }) {
   if (isLoading) {
@@ -28,7 +35,7 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
                 <Separator />
                 <div className="space-y-2">
                     <Skeleton className="h-4 w-1/4" />
-                    <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-10 w-full" />
                 </div>
             </CardContent>
         </Card>
@@ -70,21 +77,35 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
         <Separator />
         
         <div>
-          <h4 className="font-semibold mb-2">Original Report</h4>
-          <ScrollArea className="h-64 w-full rounded-md border p-4 bg-muted/30">
-            {report.type === 'image' ? (
-              <NextImage
-                src={report.content!}
-                alt={report.name}
-                width={500}
-                height={500}
-                className="rounded-md object-contain w-full h-auto"
-                data-ai-hint="medical scan"
-              />
-            ) : (
-              <pre className="whitespace-pre-wrap text-sm font-mono">{report.originalText || report.content}</pre>
-            )}
-          </ScrollArea>
+           <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                    <Eye className="mr-2 h-4 w-4" />
+                    Show Original Report
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>{report.name}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow overflow-hidden">
+                    <ScrollArea className="h-full w-full rounded-md border p-4">
+                        {report.type === 'image' ? (
+                        <NextImage
+                            src={report.content!}
+                            alt={report.name}
+                            width={800}
+                            height={1000}
+                            className="rounded-md object-contain w-full h-auto"
+                            data-ai-hint="medical scan"
+                        />
+                        ) : (
+                        <pre className="whitespace-pre-wrap text-sm font-mono">{report.originalText || report.content}</pre>
+                        )}
+                    </ScrollArea>
+                </div>
+            </DialogContent>
+           </Dialog>
         </div>
         <div className="flex items-start space-x-2 rounded-lg border border-yellow-200/50 bg-yellow-950/30 p-3 text-yellow-200">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-400" />
