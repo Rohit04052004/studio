@@ -23,22 +23,26 @@ export async function processReportAction(userId: string, reportDataUri: string,
     const summaryResult = await summarizeMedicalReport({ reportDataUri });
     const highlightedResult = await highlightAbnormalResults({ reportSummary: summaryResult.summary });
     
-    let originalText;
-    if (fileType.startsWith('text/')) {
-      originalText = fileContent;
-    }
+    const isTextFile = fileType.startsWith('text/');
+    const isImageFile = fileType.startsWith('image/');
 
     const newReport: Omit<Report, 'id'> = {
       userId,
       name: fileName,
-      type: fileType.startsWith('image/') ? 'image' : 'text',
-      content: fileType.startsWith('image/') ? reportDataUri : undefined, // Don't store text content in top-level `content` field
+      type: isImageFile ? 'image' : 'text',
       summary: summaryResult.summary,
       highlightedSummary: highlightedResult.highlightedSummary,
-      originalText,
       chatHistory: [],
       createdAt: FieldValue.serverTimestamp(),
     };
+
+    if (isImageFile) {
+        newReport.content = reportDataUri;
+    }
+
+    if (isTextFile) {
+        newReport.originalText = fileContent;
+    }
 
     const docRef = await db.collection('reports').add(newReport);
     
