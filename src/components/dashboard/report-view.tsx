@@ -69,9 +69,11 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
       <CardContent className="space-y-6">
         <div>
           <h4 className="font-semibold mb-2 flex items-center gap-2"><Bot className="h-5 w-5" /> Summary</h4>
-          <div className="p-4 bg-muted/50 rounded-lg border">
-            <Markdown content={report.highlightedSummary || report.summary || 'No summary available.'} />
-          </div>
+          <ScrollArea className="h-full max-h-60 w-full rounded-md border">
+            <div className="p-4 bg-muted/50">
+              <Markdown content={report.highlightedSummary || report.summary || 'No summary available.'} />
+            </div>
+          </ScrollArea>
         </div>
 
         <Separator />
