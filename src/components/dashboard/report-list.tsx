@@ -34,7 +34,7 @@ export function ReportList({ reports, selectedReportId, onSelectReport }: Report
                     ) : (
                       <Image className="h-5 w-5 flex-shrink-0 text-primary" />
                     )}
-                    <div className="flex-grow text-left">
+                    <div className="flex-grow text-left w-full min-w-0">
                         <p className="truncate text-sm font-medium">{report.name}</p>
                         <p className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(report.createdAt as string), { addSuffix: true })}
