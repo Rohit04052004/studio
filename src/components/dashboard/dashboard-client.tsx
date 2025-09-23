@@ -41,7 +41,7 @@ export function DashboardClient() {
         setReports([]);
         setSelectedReportId(null);
     }
-  }, [user, authLoading, toast]);
+  }, [user, authLoading]);
 
 
   const selectedReport = useMemo(
