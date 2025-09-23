@@ -1,19 +1,22 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import type { Report, AssistantChat, Message } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, History, ListFilter, MessageSquare, Search, Bot, User, X } from 'lucide-react';
+import { FileText, History, ListFilter, MessageSquare, Search, Bot, User, X, Trash2, LoaderCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { deleteReportAction, archiveAssistantChatAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 interface HistoryClientProps {
     initialReports: Report[];
@@ -28,7 +31,7 @@ const ClientFormattedDate = ({ date }: { date: string | Date }) => {
     }, [date]);
 
     if (!formattedDate) {
-        return null; // Or a placeholder/skeleton
+        return null; 
     }
 
     return <>{formattedDate}</>;
@@ -42,7 +45,7 @@ const ClientFormattedDateTime = ({ date }: { date: string | Date }) => {
     }, [date]);
 
     if (!formattedDate) {
-        return null; // Or a placeholder/skeleton
+        return null;
     }
 
     return <>{formattedDate}</>;
@@ -50,12 +53,15 @@ const ClientFormattedDateTime = ({ date }: { date: string | Date }) => {
 
 
 export function HistoryClient({ initialReports, initialAssistantChat }: HistoryClientProps) {
-  const [reports] = useState<Report[]>(initialReports);
-  const [assistantChat] = useState<AssistantChat | null>(initialAssistantChat);
+  const [reports, setReports] = useState<Report[]>(initialReports);
+  const [assistantChat, setAssistantChat] = useState<AssistantChat | null>(initialAssistantChat);
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<Report | AssistantChat | null>(null);
-
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  
   const searchLower = searchTerm.toLowerCase();
 
   const filteredReports = reports.filter(report =>
@@ -97,6 +103,46 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
   const handleModalClose = () => {
     setSelectedItem(null);
   };
+  
+  const handleDeleteReport = (reportId: string) => {
+    startTransition(async () => {
+      const result = await deleteReportAction(reportId);
+      if (result.success) {
+        setReports(prev => prev.filter(r => r.id !== reportId));
+        toast({ title: 'Success', description: 'Report deleted.' });
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    });
+  };
+
+  const handleArchiveChat = () => {
+    if (!user) return;
+    startTransition(async () => {
+      const result = await archiveAssistantChatAction(user.uid);
+      if (result.success) {
+        // This is tricky because we need to refetch the data.
+        // For now, we just remove the chat from the local state.
+        // A full page refresh would be the most robust way.
+        const archivedChat = assistantChat;
+        if(archivedChat) {
+             const newReport: Report = {
+                id: `archived-${Date.now()}`,
+                userId: user.uid,
+                name: `AI Assistant Chat - ${format(new Date(archivedChat.updatedAt), 'PP p')}`,
+                type: 'assistant',
+                chatHistory: archivedChat.history,
+                createdAt: archivedChat.updatedAt,
+             };
+             setReports(prev => [newReport, ...prev]);
+        }
+        setAssistantChat(null);
+        toast({ title: 'Success', description: 'Chat has been archived.' });
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    });
+  };
 
   const getModalTitle = () => {
     if (!selectedItem) return '';
@@ -113,7 +159,6 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
     }
     return selectedItem.history; // AssistantChat
   }
-
 
   return (
     <>
@@ -160,13 +205,13 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
             </TabsList>
 
             <TabsContent value="all">
-                <HistoryList items={allItems} onCardClick={handleCardClick} />
+                <HistoryList items={allItems} onCardClick={handleCardClick} onDeleteReport={handleDeleteReport} onArchiveChat={handleArchiveChat} isPending={isPending} />
             </TabsContent>
             <TabsContent value="reports">
-                <HistoryList items={reportsOnly} onCardClick={handleCardClick} />
+                <HistoryList items={reportsOnly} onCardClick={handleCardClick} onDeleteReport={handleDeleteReport} onArchiveChat={handleArchiveChat} isPending={isPending} />
             </TabsContent>
             <TabsContent value="chats">
-                 <HistoryList items={allChatItems} onCardClick={handleCardClick} />
+                 <HistoryList items={allChatItems} onCardClick={handleCardClick} onDeleteReport={handleDeleteReport} onArchiveChat={handleArchiveChat} isPending={isPending} />
             </TabsContent>
           </Tabs>
         </div>
@@ -186,7 +231,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
 }
 
 
-function HistoryList({ items, onCardClick }: { items: (Report | AssistantChat)[], onCardClick: (item: Report | AssistantChat) => void }) {
+function HistoryList({ items, onCardClick, onDeleteReport, onArchiveChat, isPending }: { items: (Report | AssistantChat)[], onCardClick: (item: Report | AssistantChat) => void, onDeleteReport: (reportId: string) => void, onArchiveChat: () => void, isPending: boolean }) {
     if (items.length === 0) {
         return (
              <Card className="mt-4">
@@ -210,9 +255,9 @@ function HistoryList({ items, onCardClick }: { items: (Report | AssistantChat)[]
             })
             .map((item, index) => {
                 if ('name' in item) { // It's a Report (including archived chats)
-                    return <ReportHistoryItem key={item.id || `report-${index}`} report={item} onCardClick={() => onCardClick(item)} />;
+                    return <ReportHistoryItem key={item.id || `report-${index}`} report={item} onCardClick={() => onCardClick(item)} onDelete={() => onDeleteReport(item.id)} isPending={isPending} />;
                 } else if ('history' in item) { // It's an active AssistantChat
-                    return <AssistantChatHistoryItem key={item.userId || `chat-${index}`} chat={item} onCardClick={() => onCardClick(item)} />;
+                    return <AssistantChatHistoryItem key={item.userId || `chat-${index}`} chat={item} onCardClick={() => onCardClick(item)} onArchive={onArchiveChat} isPending={isPending} />;
                 }
                 return null;
             })}
@@ -220,7 +265,7 @@ function HistoryList({ items, onCardClick }: { items: (Report | AssistantChat)[]
     )
 }
 
-function ReportHistoryItem({ report, onCardClick }: { report: Report, onCardClick: () => void }) {
+function ReportHistoryItem({ report, onCardClick, onDelete, isPending }: { report: Report, onCardClick: () => void, onDelete: () => void, isPending: boolean }) {
     const isArchivedChat = report.type === 'assistant';
     const description = isArchivedChat 
         ? "Archived AI health conversation." 
@@ -231,43 +276,77 @@ function ReportHistoryItem({ report, onCardClick }: { report: Report, onCardClic
       : report.summary?.substring(0, 150) + (report.summary && report.summary.length > 150 ? '...' : '');
 
     return (
-        <Card onClick={onCardClick} className="cursor-pointer hover:bg-muted/50 transition-colors">
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                        {isArchivedChat ? <Bot /> : <FileText />} 
-                        {report.name}
-                    </span>
-                    <span className="text-sm font-normal text-muted-foreground">
-                        <ClientFormattedDate date={report.createdAt} />
-                    </span>
-                </CardTitle>
-                <CardDescription>{description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2">{content}</p>
-            </CardContent>
+        <Card className="hover:bg-muted/50 transition-colors flex flex-col">
+           <div onClick={onCardClick} className="cursor-pointer flex-grow">
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                            {isArchivedChat ? <Bot /> : <FileText />} 
+                            {report.name}
+                        </span>
+                        <span className="text-sm font-normal text-muted-foreground">
+                            <ClientFormattedDate date={report.createdAt} />
+                        </span>
+                    </CardTitle>
+                    <CardDescription>{description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{content}</p>
+                </CardContent>
+            </div>
+             <CardFooter className="flex justify-end border-t pt-4 mt-auto">
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                            {isPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                            <span className="ml-2">Delete</span>
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete this report and its associated chat history.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={(e) => { e.preventDefault(); onDelete(); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardFooter>
         </Card>
     )
 }
 
-function AssistantChatHistoryItem({ chat, onCardClick }: { chat: AssistantChat, onCardClick: () => void }) {
+function AssistantChatHistoryItem({ chat, onCardClick, onArchive, isPending }: { chat: AssistantChat, onCardClick: () => void, onArchive: () => void, isPending: boolean }) {
      return (
-        <Card onClick={onCardClick} className="cursor-pointer hover:bg-muted/50 transition-colors">
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2"><Bot /> AI Health Assistant (Active)</span>
-                    <span className="text-sm font-normal text-muted-foreground">
-                        Last updated <ClientFormattedDateTime date={chat.updatedAt} />
-                    </span>
-                </CardTitle>
-                 <CardDescription>Current general health Q&A conversation.</CardDescription>
-            </CardHeader>
-             <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                    {chat.history[chat.history.length-1]?.content}
-                </p>
-            </CardContent>
+        <Card className="hover:bg-muted/50 transition-colors flex flex-col">
+            <div onClick={onCardClick} className="cursor-pointer flex-grow">
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <span className="flex items-center gap-2"><Bot /> AI Health Assistant (Active)</span>
+                        <span className="text-sm font-normal text-muted-foreground">
+                            Last updated <ClientFormattedDateTime date={chat.updatedAt} />
+                        </span>
+                    </CardTitle>
+                    <CardDescription>Current general health Q&A conversation.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                        {chat.history[chat.history.length-1]?.content}
+                    </p>
+                </CardContent>
+            </div>
+            <CardFooter className="flex justify-end border-t pt-4 mt-auto">
+                 <Button variant="outline" size="sm" onClick={onArchive} disabled={isPending}>
+                    {isPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                    Archive Chat
+                </Button>
+            </CardFooter>
         </Card>
     )
 }

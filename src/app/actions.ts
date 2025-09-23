@@ -155,6 +155,24 @@ export async function archiveAssistantChatAction(userId: string) {
     }
 }
 
+export async function deleteReportAction(reportId: string) {
+    if (!reportId) {
+        return { success: false, error: 'Report ID is required.' };
+    }
+    try {
+        const reportRef = db.collection('reports').doc(reportId);
+        await reportRef.delete();
+        
+        revalidatePath('/reports');
+        revalidatePath('/history');
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting report:', error);
+        return { success: false, error: 'Failed to delete report.' };
+    }
+}
+
 
 export async function getAssistantChatAction(userId: string): Promise<{ success: boolean; chat?: AssistantChat | null; error?: string; }> {
     if (!userId) {
