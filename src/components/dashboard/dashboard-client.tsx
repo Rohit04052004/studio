@@ -27,6 +27,7 @@ export function DashboardClient() {
             .then(result => {
                 if (result.success && result.reports) {
                     setReports(result.reports);
+                    // Select the first report only if no report is currently selected
                     if (result.reports.length > 0 && !selectedReportId) {
                         setSelectedReportId(result.reports[0].id);
                     }
@@ -38,8 +39,10 @@ export function DashboardClient() {
     } else if (!authLoading) {
         setIsLoading(false);
         setReports([]);
+        setSelectedReportId(null);
     }
-  }, [user, authLoading, toast, selectedReportId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
 
 
   const selectedReport = useMemo(
