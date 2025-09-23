@@ -110,9 +110,11 @@ export function ProfileClient() {
   }
 
   if (!user || !profile) {
+    // This case should be handled by the skeleton, but as a fallback
+    // it prevents rendering the full page with empty data.
     return (
         <div className="flex flex-1 items-center justify-center h-full">
-             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
+             <p className="text-muted-foreground">Please sign in to view your profile.</p>
         </div>
     )
   }
