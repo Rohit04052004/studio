@@ -26,7 +26,7 @@ export async function processReportAction(userId: string, reportDataUri: string,
     const isTextFile = fileType.startsWith('text/');
     const isImageFile = fileType.startsWith('image/');
 
-    const newReport: Omit<Report, 'id'> = {
+    const newReport: Omit<Report, 'id' | 'originalText' | 'content'> = {
       userId,
       name: fileName,
       type: isImageFile ? 'image' : 'text',
@@ -37,11 +37,11 @@ export async function processReportAction(userId: string, reportDataUri: string,
     };
 
     if (isImageFile) {
-        newReport.content = reportDataUri;
+        (newReport as Partial<Report>).content = reportDataUri;
     }
 
     if (isTextFile) {
-        newReport.originalText = fileContent;
+        (newReport as Partial<Report>).originalText = fileContent;
     }
 
     const docRef = await db.collection('reports').add(newReport);
@@ -77,8 +77,7 @@ export async function askQuestionAction(reportId: string, context: string, quest
         await reportRef.update({
             chatHistory: FieldValue.arrayUnion(userMessage, assistantMessage)
         });
-        revalidatePath('/reports');
-        revalidatePath('/history');
+
         return { success: true, answer: result.answer };
     } catch (error) {
         console.error('Error asking question:', error);
