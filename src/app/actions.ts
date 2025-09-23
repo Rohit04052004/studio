@@ -23,7 +23,6 @@ export async function processReportAction(userId: string, reportDataUri: string,
     const summaryResult = await summarizeMedicalReport({ reportDataUri });
     const highlightedResult = await highlightAbnormalResults({ reportSummary: summaryResult.summary });
     
-    const isTextFile = fileType.startsWith('text/');
     const isImageFile = fileType.startsWith('image/');
 
     const newReport: Partial<Report> = {
@@ -38,9 +37,7 @@ export async function processReportAction(userId: string, reportDataUri: string,
 
     if (isImageFile) {
         newReport.content = reportDataUri;
-    }
-
-    if (isTextFile) {
+    } else { // Text file
         newReport.originalText = fileContent;
     }
 
@@ -321,6 +318,27 @@ export async function getUserProfileAction(userId: string): Promise<{ success: b
     }
 }
 
+export async function updateUserProfileAction(userId: string, data: { firstName: string; lastName: string; }): Promise<{ success: boolean; error?: string; }> {
+    if (!userId) {
+        return { success: false, error: 'User not found' };
+    }
+    try {
+        const userRef = db.collection('users').doc(userId);
+        await userRef.update({
+            firstName: data.firstName,
+            lastName: data.lastName,
+        });
+
+        revalidatePath('/profile');
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        return { success: false, error: 'Failed to update user profile.' };
+    }
+}
+
+
 export async function healthCheck(): Promise<boolean> {
     try {
         const docRef = db.collection('health_check').doc('status');
@@ -336,5 +354,6 @@ export async function healthCheck(): Promise<boolean> {
     
 
     
+
 
 
