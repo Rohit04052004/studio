@@ -57,9 +57,9 @@ export async function processReportAction(userId: string, reportDataUri: string,
         createdAt: (createdReport.createdAt as unknown as Timestamp).toDate().toISOString(),
       } as Report,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error processing report:', error);
-    return { success: false, error: 'Failed to process the report. Please try again.' };
+    return { success: false, error: error.message || 'Failed to process the report. Please try again.' };
   }
 }
 
@@ -314,3 +314,5 @@ export async function healthCheck(): Promise<boolean> {
         return false;
     }
 }
+
+    
