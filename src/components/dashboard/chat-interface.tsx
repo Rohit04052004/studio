@@ -63,14 +63,7 @@ export function ChatInterface({ report, onUpdateChat }: ChatInterfaceProps) {
   };
 
   return (
-    <Card className="flex flex-col h-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-            <MessageCircleQuestion className="h-5 w-5" />
-            Ask About This Report
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden">
+    <div className="flex flex-col h-full gap-4 pt-4">
         <ScrollArea className="flex-grow pr-4 -mr-4" viewportRef={scrollAreaRef}>
           <div className="space-y-4">
             {!report ? (
@@ -135,7 +128,6 @@ export function ChatInterface({ report, onUpdateChat }: ChatInterfaceProps) {
             <span className="sr-only">Send</span>
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
   );
 }

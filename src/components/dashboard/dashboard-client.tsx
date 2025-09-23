@@ -10,7 +10,7 @@ import { getReportsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import type { Report, Message } from '@/types';
-import { LoaderCircle, FileText } from 'lucide-react';
+import { LoaderCircle, FileText, MessageCircleQuestion } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -112,7 +112,22 @@ export function DashboardClient() {
       </div>
       <div className="lg:col-span-2 flex flex-col gap-6">
         <ReportView report={selectedReport} isLoading={isLoading} />
-        <ChatInterface report={selectedReport} onUpdateChat={handleUpdateChat} />
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full" disabled={!selectedReport}>
+                    <MessageCircleQuestion className="mr-2 h-4 w-4" />
+                    Ask About This Report
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col">
+                 <DialogHeader>
+                    <DialogTitle>Ask About: {selectedReport?.name}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow overflow-hidden">
+                    <ChatInterface report={selectedReport} onUpdateChat={handleUpdateChat} />
+                </div>
+            </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
