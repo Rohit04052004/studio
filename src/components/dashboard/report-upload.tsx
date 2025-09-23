@@ -32,12 +32,33 @@ export function ReportUpload({ onAddReport, user }: ReportUploadProps) {
     reader.readAsDataURL(file);
     reader.onload = () => {
       const dataUri = reader.result as string;
-      const textReader = new FileReader();
-      textReader.readAsText(file);
-      textReader.onload = () => {
-        const fileContent = textReader.result as string;
-        startTransition(async () => {
-          const result = await processReportAction(user.uid, dataUri, file.type, fileContent, file.name);
+      
+      // For text files, we also want to read the content as text for chat context
+      if (file.type.startsWith('text/')) {
+        const textReader = new FileReader();
+        textReader.readAsText(file);
+        textReader.onload = () => {
+          const fileContent = textReader.result as string;
+          startTransition(async () => {
+            const result = await processReportAction(user.uid, dataUri, file.type, fileContent, file.name);
+            if (result.success && result.report) {
+              onAddReport(result.report);
+              toast({
+                title: 'Success',
+                description: 'Report analyzed successfully.',
+              });
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: result.error,
+              });
+            }
+          });
+        }
+      } else { // For images, fileContent is empty
+         startTransition(async () => {
+          const result = await processReportAction(user.uid, dataUri, file.type, '', file.name);
           if (result.success && result.report) {
             onAddReport(result.report);
             toast({
@@ -86,8 +107,8 @@ export function ReportUpload({ onAddReport, user }: ReportUploadProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Upload Report
+          <Upload className="h-5 w-5" />
+          Upload New Report
         </CardTitle>
       </CardHeader>
       <CardContent>

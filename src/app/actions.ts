@@ -32,28 +32,29 @@ export async function processReportAction(userId: string, reportDataUri: string,
       userId,
       name: fileName,
       type: fileType.startsWith('image/') ? 'image' : 'text',
-      content: fileType.startsWith('image/') ? reportDataUri : fileContent,
+      content: fileType.startsWith('image/') ? reportDataUri : undefined, // Don't store text content in top-level `content` field
       summary: summaryResult.summary,
       highlightedSummary: highlightedResult.highlightedSummary,
       originalText,
       chatHistory: [],
-      createdAt: new Date(),
+      createdAt: FieldValue.serverTimestamp(),
     };
 
     const docRef = await db.collection('reports').add(newReport);
     
     revalidatePath('/reports');
     revalidatePath('/history');
+    
+    const docSnap = await docRef.get();
+    const createdReport = docSnap.data() as Report;
 
-    // Return the report with the ID and correct date type for the client
-    const createdReport = (await docRef.get()).data() as Report;
     return {
       success: true,
       report: { 
         ...createdReport, 
         id: docRef.id,
         // Convert Timestamp to string for serialization
-        createdAt: (createdReport.createdAt as Timestamp).toDate().toISOString(),
+        createdAt: (createdReport.createdAt as unknown as Timestamp).toDate().toISOString(),
       } as Report,
     };
   } catch (error) {
@@ -197,6 +198,11 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
              return { 
                 id: doc.id, 
                 ...data,
+                // Ensure chatHistory has serialized dates
+                chatHistory: (data.chatHistory || []).map((msg: any) => ({
+                    ...msg,
+                    createdAt: (msg.createdAt.toDate ? msg.createdAt.toDate() : new Date(msg.createdAt)).toISOString()
+                })),
                 createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
              } as unknown as Report
         });

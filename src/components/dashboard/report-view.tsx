@@ -7,16 +7,10 @@ import NextImage from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, FileText } from 'lucide-react';
+import { AlertCircle, FileText, Bot } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
+import { Markdown } from '../markdown';
 
-// A simple markdown to HTML converter
-const HighlightedSummary = ({ content }: { content: string }) => {
-  const htmlContent = content
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary-foreground font-semibold bg-primary/30 px-1 rounded">$1</strong>');
-
-  return <p className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
-};
 
 export function ReportView({ report, isLoading }: { report: Report | null, isLoading: boolean }) {
   if (isLoading) {
@@ -67,9 +61,9 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h4 className="font-semibold mb-2">Summary</h4>
-          <div className="p-4 bg-background rounded-lg border">
-            <HighlightedSummary content={report.highlightedSummary} />
+          <h4 className="font-semibold mb-2 flex items-center gap-2"><Bot className="h-5 w-5" /> Summary</h4>
+          <div className="p-4 bg-muted/50 rounded-lg border">
+            <Markdown content={report.highlightedSummary || report.summary || 'No summary available.'} />
           </div>
         </div>
 
@@ -80,7 +74,7 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
           <ScrollArea className="h-64 w-full rounded-md border p-4 bg-muted/30">
             {report.type === 'image' ? (
               <NextImage
-                src={report.content}
+                src={report.content!}
                 alt={report.name}
                 width={500}
                 height={500}
@@ -88,7 +82,7 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
                 data-ai-hint="medical scan"
               />
             ) : (
-              <pre className="whitespace-pre-wrap text-sm font-mono">{report.content}</pre>
+              <pre className="whitespace-pre-wrap text-sm font-mono">{report.originalText || report.content}</pre>
             )}
           </ScrollArea>
         </div>

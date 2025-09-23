@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Report } from '@/types';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, Image, CheckCircle2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 
 interface ReportListProps {
   reports: Report[];
@@ -15,12 +17,12 @@ interface ReportListProps {
 
 export function ReportList({ reports, selectedReportId, onSelectReport }: ReportListProps) {
   return (
-    <Card>
+    <Card className="flex-grow">
       <CardHeader>
         <CardTitle>My Reports</CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-72">
+        <ScrollArea className="h-96">
           {reports.length > 0 ? (
             <div className="space-y-2">
               {reports.map((report) => (
@@ -36,10 +38,12 @@ export function ReportList({ reports, selectedReportId, onSelectReport }: Report
                     ) : (
                       <Image className="h-5 w-5 flex-shrink-0 text-primary" />
                     )}
-                    <span className="truncate text-sm text-left flex-grow">{report.name}</span>
-                    {selectedReportId === report.id && (
-                       <CheckCircle2 className="h-5 w-5 text-accent" />
-                    )}
+                    <div className="flex-grow text-left">
+                        <p className="truncate text-sm font-medium">{report.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(report.createdAt as string), { addSuffix: true })}
+                        </p>
+                    </div>
                   </div>
                 </Button>
               ))}

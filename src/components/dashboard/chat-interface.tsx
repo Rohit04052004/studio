@@ -12,6 +12,7 @@ import { Send, User, Bot, LoaderCircle, MessageCircleQuestion } from 'lucide-rea
 import { useToast } from '@/hooks/use-toast';
 import { askQuestionAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
+import { Markdown } from '../markdown';
 
 interface ChatInterfaceProps {
   report: Report | null;
@@ -34,62 +35,43 @@ export function ChatInterface({ report, onUpdateChat }: ChatInterfaceProps) {
     e.preventDefault();
     if (!input.trim() || !report) return;
 
-    const userMessage: Message = { role: 'user', content: input, createdAt: new Date() };
-    const pendingMessage: Message = { role: 'assistant', content: '', isPending: true, createdAt: new Date() };
-    
-    // Optimistically update UI
-    const newChatHistory = [...(report.chatHistory || []), userMessage, pendingMessage];
-    onUpdateChat(report.id, newChatHistory);
-    
+    const userMessage: Message = { role: 'user', content: input, createdAt: new Date().toISOString() };
     const currentInput = input;
+    const optimisticHistory = [...(report.chatHistory || []), userMessage, { role: 'assistant', content: '', isPending: true, createdAt: new Date().toISOString() }];
+
+    onUpdateChat(report.id, optimisticHistory);
     setInput('');
 
     startTransition(async () => {
-      const context = report.originalText || report.summary;
+      const context = report.originalText || report.summary || '';
       const result = await askQuestionAction(report.id, context, currentInput);
       
-      // Update UI with actual response
-      setMessages(prev => {
-        const updatedMessages = prev.filter(m => !m.isPending);
-        if (result.success && result.answer) {
-          const assistantMessage: Message = { role: 'assistant', content: result.answer, createdAt: new Date() };
-          const finalHistory = [...(report.chatHistory || []), userMessage, assistantMessage];
-           // This is tricky because the parent state has changed.
-           // A better approach might involve a global state manager or passing down the full report update function.
-           // For now, we assume the parent will refetch or handle the update.
-           // This optimistic UI will be out of sync until a reload. A proper implementation is needed.
-           onUpdateChat(report.id, finalHistory);
-
-        } else {
-            toast({
-              variant: 'destructive',
-              title: 'Error',
-              description: result.error,
-            });
-            const errorMessage: Message = { role: 'assistant', content: "Sorry, I couldn't get an answer. Please try again.", createdAt: new Date() };
-            const finalHistory = [...(report.chatHistory || []), userMessage, errorMessage];
-            onUpdateChat(report.id, finalHistory);
-        }
-      });
+      const finalHistory = [...(report.chatHistory || []), userMessage];
+      if (result.success && result.answer) {
+        const assistantMessage: Message = { role: 'assistant', content: result.answer, createdAt: new Date().toISOString() };
+        onUpdateChat(report.id, [...finalHistory, assistantMessage]);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.error,
+        });
+        // Remove the pending message on error
+        onUpdateChat(report.id, finalHistory);
+      }
     });
   };
-
-  const setMessages = (update: (prev: Message[]) => Message[]) => {
-      if(!report) return;
-      const newMessages = update(report.chatHistory || []);
-      onUpdateChat(report.id, newMessages);
-  }
 
   return (
     <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <MessageCircleQuestion className="h-5 w-5" />
-            Ask About Your Report
+            Ask About This Report
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden">
-        <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
+        <ScrollArea className="flex-grow pr-4 -mr-4" viewportRef={scrollAreaRef}>
           <div className="space-y-4">
             {!report ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4 min-h-[200px]">
@@ -126,7 +108,7 @@ export function ChatInterface({ report, onUpdateChat }: ChatInterfaceProps) {
                         <span>Thinking...</span>
                       </div>
                     ) : (
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                      <Markdown content={message.content} />
                     )}
                   </div>
                   {message.role === 'user' && (
