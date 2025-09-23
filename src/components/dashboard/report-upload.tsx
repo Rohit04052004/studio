@@ -3,23 +3,28 @@
 
 import { useState, useTransition, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, LoaderCircle } from 'lucide-react';
+import { Upload, FileText, LoaderCircle, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { processReportAction } from '@/app/actions';
 import type { Report } from '@/types';
-import { Button } from '../ui/button';
 import type { User } from 'firebase/auth';
-
 
 interface ReportUploadProps {
   onAddReport: (report: Report) => void;
   user: User | null;
 }
 
+type UploadResult = {
+  success: boolean;
+  report?: Report;
+  error?: string;
+} | null;
+
 export function ReportUpload({ onAddReport, user }: ReportUploadProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [dragActive, setDragActive] = useState(false);
+  const [lastResult, setLastResult] = useState<UploadResult>(null);
 
   const handleFile = useCallback((file: File) => {
     if (!file || !user) {
@@ -41,6 +46,7 @@ export function ReportUpload({ onAddReport, user }: ReportUploadProps) {
           const fileContent = textReader.result as string;
           startTransition(async () => {
             const result = await processReportAction(user.uid, dataUri, file.type, fileContent, file.name);
+            setLastResult(result);
             if (result.success && result.report) {
               onAddReport(result.report);
               toast({
@@ -59,6 +65,7 @@ export function ReportUpload({ onAddReport, user }: ReportUploadProps) {
       } else { // For images, fileContent is empty
          startTransition(async () => {
           const result = await processReportAction(user.uid, dataUri, file.type, '', file.name);
+          setLastResult(result);
           if (result.success && result.report) {
             onAddReport(result.report);
             toast({
@@ -104,6 +111,7 @@ export function ReportUpload({ onAddReport, user }: ReportUploadProps) {
   };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -150,5 +158,22 @@ export function ReportUpload({ onAddReport, user }: ReportUploadProps) {
         </form>
       </CardContent>
     </Card>
+    {lastResult && (
+       <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Bug className="h-5 w-5" />
+              Upload Debug Info
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs">
+              <h4 className="font-semibold text-sm">Last Upload Result</h4>
+              <pre className="p-2 bg-muted rounded-md mt-1 max-h-64 overflow-auto">
+                {JSON.stringify(lastResult, null, 2)}
+              </pre>
+          </CardContent>
+        </Card>
+    )}
+    </>
   );
 }

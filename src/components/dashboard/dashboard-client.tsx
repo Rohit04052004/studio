@@ -6,7 +6,6 @@ import { ReportUpload } from './report-upload';
 import { ReportList } from './report-list';
 import { ReportView } from './report-view';
 import { ChatInterface } from './chat-interface';
-import { DebugCard } from './debug-card';
 import { getReportsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -27,7 +26,6 @@ export function DashboardClient() {
         setIsLoading(true);
         const result = await getReportsAction(user.uid);
         if (result.success && result.reports) {
-          // The sorting is now done in the server action
           setReports(result.reports);
           if (result.reports.length > 0 && !selectedReportId) {
             setSelectedReportId(result.reports[0].id);
@@ -92,7 +90,6 @@ export function DashboardClient() {
         <ReportView report={selectedReport} isLoading={isLoading} />
         <ChatInterface report={selectedReport} onUpdateChat={handleUpdateChat} />
       </div>
-      <DebugCard reports={reports} selectedReport={selectedReport} isLoading={isLoading} />
     </div>
   );
 }
