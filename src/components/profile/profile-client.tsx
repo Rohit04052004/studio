@@ -111,8 +111,8 @@ export function ProfileClient() {
 
   if (!user || !profile) {
     return (
-        <div className="flex flex-1 items-center justify-center">
-            <p>Please log in to view your profile.</p>
+        <div className="flex flex-1 items-center justify-center h-full">
+             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
         </div>
     )
   }

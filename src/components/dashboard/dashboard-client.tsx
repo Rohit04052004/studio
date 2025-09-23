@@ -46,7 +46,7 @@ export function DashboardClient() {
       }
     }
     fetchReports();
-  }, [user, authLoading]);
+  }, [user, authLoading, toast, selectedReportId]);
 
   const handleAddReport = (newReport: Report) => {
     setReports(prev => [newReport, ...prev]);

@@ -287,6 +287,14 @@ export function AssistantClient() {
       );
     }
 
+    if (!user) {
+        return (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p>Please sign in to use the assistant.</p>
+            </div>
+        )
+    }
+
     if (isInitialLoad && messages.length === 0) {
       return (
         <InitialView
