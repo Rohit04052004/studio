@@ -316,7 +316,7 @@ function ReportHistoryItem({ report, onCardClick, onDelete, isPending }: { repor
                     </AlertDialogContent>
                 </AlertDialog>
             </CardFooter>
-        </Card>>
+        </Card>
     )
 }
 
