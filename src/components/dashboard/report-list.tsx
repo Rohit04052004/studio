@@ -17,11 +17,7 @@ interface ReportListProps {
 
 export function ReportList({ reports, selectedReportId, onSelectReport }: ReportListProps) {
   return (
-    <Card className="flex-grow">
-      <CardHeader>
-        <CardTitle>My Reports</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="w-full">
         <ScrollArea className="h-96">
           {reports.length > 0 ? (
             <div className="space-y-2">
@@ -55,7 +51,6 @@ export function ReportList({ reports, selectedReportId, onSelectReport }: Report
             </div>
           )}
         </ScrollArea>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

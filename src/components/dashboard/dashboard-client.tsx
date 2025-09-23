@@ -10,13 +10,16 @@ import { getReportsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import type { Report, Message } from '@/types';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, FileText } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export function DashboardClient() {
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
@@ -53,6 +56,12 @@ export function DashboardClient() {
   const handleUpdateChat = (reportId: string, newMessages: Message[]) => {
      setReports(prev => prev.map(r => r.id === reportId ? { ...r, chatHistory: newMessages } : r));
   }
+  
+  const handleSelectReport = (id: string) => {
+    setSelectedReportId(id);
+    setIsModalOpen(false); // Close modal on selection
+  };
+
 
   const selectedReport = reports.find(r => r.id === selectedReportId) || null;
   
@@ -80,11 +89,26 @@ export function DashboardClient() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
       <div className="lg:col-span-1 flex flex-col gap-6">
         <ReportUpload onAddReport={handleAddReport} user={user} />
-        <ReportList 
-            reports={reports} 
-            selectedReportId={selectedReportId} 
-            onSelectReport={setSelectedReportId}
-        />
+        
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full justify-start text-base py-6">
+                    <FileText className="mr-2 h-5 w-5" />
+                    View My Reports ({reports.length})
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>My Reports</DialogTitle>
+                </DialogHeader>
+                 <ReportList 
+                    reports={reports} 
+                    selectedReportId={selectedReportId} 
+                    onSelectReport={handleSelectReport}
+                />
+            </DialogContent>
+        </Dialog>
+        
       </div>
       <div className="lg:col-span-2 flex flex-col gap-6">
         <ReportView report={selectedReport} isLoading={isLoading} />
