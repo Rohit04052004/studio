@@ -6,6 +6,7 @@ import { ReportUpload } from './report-upload';
 import { ReportList } from './report-list';
 import { ReportView } from './report-view';
 import { ChatInterface } from './chat-interface';
+import { DebugCard } from './debug-card';
 import { getReportsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -91,6 +92,7 @@ export function DashboardClient() {
         <ReportView report={selectedReport} isLoading={isLoading} />
         <ChatInterface report={selectedReport} onUpdateChat={handleUpdateChat} />
       </div>
+      <DebugCard reports={reports} selectedReport={selectedReport} isLoading={isLoading} />
     </div>
   );
 }
