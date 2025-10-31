@@ -83,6 +83,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
         r.summary?.toLowerCase().includes(searchLower) ||
         r.chatHistory?.some(m => m.content.toLowerCase().includes(searchLower))
     );
+    // A "report" is anything that isn't just an archived assistant chat
     return r.type !== 'assistant' && matchesSearch;
   });
   
@@ -219,24 +220,38 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
           </Tabs>
         </div>
          <details className="mt-8">
-          <summary className="cursor-pointer text-sm text-muted-foreground">Debugger: Show Raw Data</summary>
+          <summary className="cursor-pointer text-sm text-muted-foreground">Debugger: Show Detailed Data</summary>
           <Card className="mt-2">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg"><Info/> Raw Prop Data</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-lg"><Info/> Client-Side Debugger</CardTitle>
               <CardDescription>
-                This card shows the unfiltered data passed to the HistoryClient component from the server.
-                Use this to verify if data is missing or if the issue is with client-side filtering.
+                This card shows the data received from the server and how it's being filtered on the client.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <h3 className="font-bold mb-2">Initial Assistant Chat</h3>
-              <pre className="bg-muted p-2 rounded text-xs overflow-auto">
-                {JSON.stringify(initialAssistantChat, null, 2) || 'null'}
-              </pre>
-              <h3 className="font-bold mt-4 mb-2">Initial Reports ({initialReports.length})</h3>
-              <pre className="bg-muted p-2 rounded text-xs max-h-96 overflow-auto">
-                {JSON.stringify(initialReports, null, 2)}
-              </pre>
+            <CardContent className="space-y-4">
+              <div>
+                  <h3 className="font-bold mb-2">1. Initial Server-Side Props</h3>
+                  <p className="text-xs text-muted-foreground mb-1">This is the raw, unfiltered data passed to the component from the server.</p>
+                  <pre className="bg-muted p-2 rounded text-xs max-h-48 overflow-auto">
+                    <strong>Initial Assistant Chat:</strong> {JSON.stringify(initialAssistantChat, null, 2) || 'null'}{'\n\n'}
+                    <strong>Initial Reports ({initialReports.length}):</strong> {JSON.stringify(initialReports, null, 2)}
+                  </pre>
+              </div>
+               <div>
+                  <h3 className="font-bold mb-2">2. Authentication State</h3>
+                   <pre className="bg-muted p-2 rounded text-xs max-h-48 overflow-auto">
+                    {user ? `User UID: ${user.uid}, Email: ${user.email}` : 'No authenticated user found.'}
+                  </pre>
+              </div>
+              <div>
+                  <h3 className="font-bold mb-2">3. Client-Side Filtered Data</h3>
+                   <p className="text-xs text-muted-foreground mb-1">This is the data after applying the search term and tab filters on the client. This is what should be rendered.</p>
+                  <pre className="bg-muted p-2 rounded text-xs max-h-60 overflow-auto">
+                    <strong>'All' Tab Items ({allItems.length}):</strong> {JSON.stringify(allItems, null, 2)}{'\n\n'}
+                    <strong>'Reports' Tab Items ({reportsOnly.length}):</strong> {JSON.stringify(reportsOnly, null, 2)}{'\n\n'}
+                    <strong>'Chats' Tab Items ({chatItems.length}):</strong> {JSON.stringify(chatItems, null, 2)}
+                  </pre>
+              </div>
             </CardContent>
           </Card>
         </details>
@@ -435,3 +450,5 @@ function ChatHistory({ messages }: { messages: Message[] }) {
         </ScrollArea>
     )
 }
+
+    
