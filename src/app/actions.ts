@@ -263,53 +263,87 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
     }
 }
 
+// Helper to safely convert a Firestore timestamp or string to an ISO string
+const safeToISOString = (dateValue: any): string => {
+    if (!dateValue) return new Date().toISOString(); // Fallback
+    if (dateValue.toDate) { // It's a Firestore Timestamp
+        return dateValue.toDate().toISOString();
+    }
+    if (typeof dateValue === 'string') {
+        // If it's already a string, assume it's valid or try to parse it
+        return new Date(dateValue).toISOString();
+    }
+    if (dateValue instanceof Date) {
+        return dateValue.toISOString();
+    }
+    // Fallback for other unexpected types
+    return new Date().toISOString();
+};
+
+
 export async function getHistoryAction(userId: string): Promise<{ success: boolean; reports?: Report[]; assistantChat?: AssistantChat | null; error?: string; }> {
     if (!userId) {
+        console.log("getHistoryAction: No user ID provided.");
         return { success: true, reports: [], assistantChat: null };
     }
     try {
-        // Fetch all reports, including the newly archived assistant chats
+        // Fetch all reports
         const reportsRef = db.collection('reports');
-        // REMOVED ORDER BY TO AVOID NEEDING A COMPOSITE INDEX
         const reportsQuery = reportsRef.where('userId', '==', userId);
         const reportsSnapshot = await reportsQuery.get();
-        let reports = reportsSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return { 
-                id: doc.id, 
-                ...data,
-                // Ensure createdAt is a string for client-side hydration
-                createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
-                chatHistory: data.chatHistory?.map((msg: any) => ({
-                    ...msg,
-                    createdAt: (msg.createdAt.toDate ? msg.createdAt.toDate() : new Date(msg.createdAt)).toISOString()
-                })) || []
-            } as unknown as Report;
+        
+        let reports: Report[] = [];
+        reportsSnapshot.docs.forEach(doc => {
+            try {
+                const data = doc.data();
+                const reportItem = {
+                    id: doc.id,
+                    ...data,
+                    createdAt: safeToISOString(data.createdAt),
+                    chatHistory: (data.chatHistory || []).map((msg: any) => ({
+                        ...msg,
+                        createdAt: safeToISOString(msg.createdAt)
+                    }))
+                } as unknown as Report;
+                reports.push(reportItem);
+            } catch (mapError) {
+                console.error(`Error processing report doc ${doc.id}:`, mapError);
+                // Skip this document if it causes an error
+            }
         });
 
         // Sort in code instead of in the query
         reports.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
         
-        // Fetch the current active assistant chat, if it exists
+        // Fetch the current active assistant chat
         const assistantChatRef = db.collection('assistantChats').doc(userId);
         const assistantChatDoc = await assistantChatRef.get();
         let assistantChat: AssistantChat | null = null;
+
         if (assistantChatDoc.exists) {
-            const chatData = assistantChatDoc.data();
-            if (chatData) {
-                assistantChat = {
-                    userId,
-                    history: chatData.history.map((msg: any) => ({ ...msg, createdAt: (msg.createdAt.toDate ? msg.createdAt.toDate() : new Date(msg.createdAt)).toISOString() })),
-                    createdAt: (chatData.createdAt.toDate ? chatData.createdAt.toDate() : new Date(chatData.createdAt)).toISOString(),
-                    updatedAt: (chatData.updatedAt.toDate ? chatData.updatedAt.toDate() : new Date(chatData.updatedAt)).toISOString(),
-                } as unknown as AssistantChat
+            try {
+                const chatData = assistantChatDoc.data();
+                if (chatData) {
+                    assistantChat = {
+                        userId,
+                        history: (chatData.history || []).map((msg: any) => ({
+                             ...msg, 
+                             createdAt: safeToISOString(msg.createdAt) 
+                        })),
+                        createdAt: safeToISOString(chatData.createdAt),
+                        updatedAt: safeToISOString(chatData.updatedAt),
+                    } as unknown as AssistantChat;
+                }
+            } catch (chatError) {
+                console.error(`Error processing assistant chat for user ${userId}:`, chatError);
+                // assistantChat remains null
             }
         }
 
         return { success: true, reports, assistantChat };
     } catch (error) {
         console.error('Error fetching history:', error);
-        return { success: false, error: 'Failed to fetch history.' };
+        return { success: false, error: 'Failed to fetch history.', reports: [], assistantChat: null };
     }
 }
 
@@ -381,15 +415,5 @@ export async function healthCheck(): Promise<boolean> {
         return false;
     }
 }
-
-    
-
-    
-
-
-
-
-
-    
 
     
