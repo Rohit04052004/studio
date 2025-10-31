@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, History, ListFilter, MessageSquare, Search, Bot, User, X, Trash2, LoaderCircle } from 'lucide-react';
+import { FileText, History, ListFilter, MessageSquare, Search, Bot, User, X, Trash2, LoaderCircle, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -62,37 +62,42 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
   
   const searchLower = searchTerm.toLowerCase();
 
-  const filteredReports = reports.filter(report =>
-    (report.name && report.name.toLowerCase().includes(searchLower)) ||
-    (report.summary && report.summary.toLowerCase().includes(searchLower)) ||
-    (report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower)))
-  );
-  
-  const allChatItems = reports.filter(report => 
-    (report.chatHistory && report.chatHistory.length > 0) &&
-    (
-        (report.name && report.name.toLowerCase().includes(searchLower)) ||
-        report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower))
-    )
-  );
-
-  const filteredActiveAssistantChat = assistantChat && assistantChat.history.some(m => m.content.toLowerCase().includes(searchLower)) ? assistantChat : null;
-  
-  const allItems: (Report | AssistantChat)[] = [...filteredReports];
-  if (filteredActiveAssistantChat) {
-    if(!allItems.some(item => 'history' in item && 'userId' in item && item.userId === filteredActiveAssistantChat.userId && !('name' in item))) {
-      allItems.unshift(filteredActiveAssistantChat);
+  // Corrected Filtering Logic
+  const allItems: (Report | AssistantChat)[] = [
+    ...(assistantChat ? [assistantChat] : []),
+    ...reports,
+  ].filter(item => {
+    if (!searchTerm) return true;
+    if ('name' in item) { // Report
+      return (item.name?.toLowerCase().includes(searchLower) ||
+              item.summary?.toLowerCase().includes(searchLower) ||
+              item.chatHistory?.some(m => m.content.toLowerCase().includes(searchLower)))
+    } else { // AssistantChat
+      return item.history?.some(m => m.content.toLowerCase().includes(searchLower));
     }
-  }
-  
-   if (filteredActiveAssistantChat) {
-     if(!allChatItems.some(item => 'history' in item && 'userId' in item && item.userId === filteredActiveAssistantChat.userId && !('name' in item))) {
-        allChatItems.unshift(filteredActiveAssistantChat);
-     }
-  }
+  });
 
-  const reportsOnly = filteredReports.filter(r => r.type !== 'assistant');
-  const chatItemsCount = allChatItems.length;
+  const reportsOnly: Report[] = reports.filter(r => {
+    const matchesSearch = !searchTerm || (
+        r.name?.toLowerCase().includes(searchLower) ||
+        r.summary?.toLowerCase().includes(searchLower) ||
+        r.chatHistory?.some(m => m.content.toLowerCase().includes(searchLower))
+    );
+    return r.type !== 'assistant' && matchesSearch;
+  });
+  
+  const chatItems: (Report | AssistantChat)[] = [
+    ...(assistantChat ? [assistantChat] : []),
+    ...reports.filter(r => r.chatHistory && r.chatHistory.length > 0)
+  ].filter(item => {
+      if (!searchTerm) return true;
+      if ('name' in item) { // Report with chat
+        return (item.name?.toLowerCase().includes(searchLower) ||
+                item.chatHistory?.some(m => m.content.toLowerCase().includes(searchLower)))
+      } else { // AssistantChat
+        return item.history?.some(m => m.content.toLowerCase().includes(searchLower));
+      }
+  });
 
   const handleCardClick = (item: Report | AssistantChat) => {
     setSelectedItem(item);
@@ -198,7 +203,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
               </TabsTrigger>
               <TabsTrigger value="chats">
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Chats ({chatItemsCount})
+                Chats ({chatItems.length})
               </TabsTrigger>
             </TabsList>
 
@@ -209,10 +214,32 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
                 <HistoryList items={reportsOnly} onCardClick={handleCardClick} onDeleteReport={handleDeleteReport} onArchiveChat={handleArchiveChat} isPending={isPending} />
             </TabsContent>
             <TabsContent value="chats">
-                 <HistoryList items={allChatItems} onCardClick={handleCardClick} onDeleteReport={handleDeleteReport} onArchiveChat={handleArchiveChat} isPending={isPending} />
+                 <HistoryList items={chatItems} onCardClick={handleCardClick} onDeleteReport={handleDeleteReport} onArchiveChat={handleArchiveChat} isPending={isPending} />
             </TabsContent>
           </Tabs>
         </div>
+         <details className="mt-8">
+          <summary className="cursor-pointer text-sm text-muted-foreground">Debugger: Show Raw Data</summary>
+          <Card className="mt-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg"><Info/> Raw Prop Data</CardTitle>
+              <CardDescription>
+                This card shows the unfiltered data passed to the HistoryClient component from the server.
+                Use this to verify if data is missing or if the issue is with client-side filtering.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <h3 className="font-bold mb-2">Initial Assistant Chat</h3>
+              <pre className="bg-muted p-2 rounded text-xs overflow-auto">
+                {JSON.stringify(initialAssistantChat, null, 2) || 'null'}
+              </pre>
+              <h3 className="font-bold mt-4 mb-2">Initial Reports ({initialReports.length})</h3>
+              <pre className="bg-muted p-2 rounded text-xs max-h-96 overflow-auto">
+                {JSON.stringify(initialReports, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        </details>
       </div>
       <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && handleModalClose()}>
         <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col">
@@ -408,5 +435,3 @@ function ChatHistory({ messages }: { messages: Message[] }) {
         </ScrollArea>
     )
 }
-
-    
