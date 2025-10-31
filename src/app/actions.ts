@@ -148,6 +148,9 @@ export async function archiveAssistantChatAction(userId: string) {
     if (!userId) {
         return { success: false, error: 'User not found.' };
     }
+    if (!db) {
+        return { success: false, error: 'Database service is not available.' };
+    }
     try {
         const chatRef = db.collection('assistantChats').doc(userId);
         const chatDoc = await chatRef.get();
@@ -183,6 +186,9 @@ export async function deleteReportAction(reportId: string) {
     if (!reportId) {
         return { success: false, error: 'Report ID is required.' };
     }
+     if (!db) {
+        return { success: false, error: 'Database service is not available.' };
+    }
     try {
         const reportRef = db.collection('reports').doc(reportId);
         await reportRef.delete();
@@ -201,6 +207,10 @@ export async function deleteReportAction(reportId: string) {
 export async function getAssistantChatAction(userId: string): Promise<{ success: boolean; chat?: AssistantChat | null; error?: string; }> {
     if (!userId) {
         return { success: true, chat: null };
+    }
+    if (!db) {
+         console.error("getAssistantChatAction: Database service is not available.");
+        return { success: false, error: 'Database service is not available.' };
     }
     try {
         const assistantChatRef = db.collection('assistantChats').doc(userId);
@@ -235,6 +245,10 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
     if (!userId) {
         return { success: true, reports: [] };
     }
+    if (!db) {
+         console.error("getReportsAction: Database service is not available.");
+        return { success: false, error: 'Database service is not available.' };
+    }
     try {
         const reportsRef = db.collection('reports');
         const q = reportsRef.where('userId', '==', userId);
@@ -265,52 +279,80 @@ export async function getReportsAction(userId: string): Promise<{ success: boole
 
 // Helper to safely convert a Firestore timestamp or string to an ISO string
 const safeToISOString = (dateValue: any): string => {
-    if (!dateValue) return new Date().toISOString(); // Fallback
+    if (!dateValue) {
+        // If date is missing, log it but return a valid date to avoid crashing.
+        console.warn('safeToISOString encountered a null or undefined date value.');
+        return new Date().toISOString();
+    }
     if (dateValue.toDate) { // It's a Firestore Timestamp
         return dateValue.toDate().toISOString();
     }
     if (typeof dateValue === 'string') {
         // If it's already a string, assume it's valid or try to parse it
-        return new Date(dateValue).toISOString();
+        const parsedDate = new Date(dateValue);
+        if (isNaN(parsedDate.getTime())) {
+            console.warn(`safeToISOString received an invalid date string: ${dateValue}`);
+            return new Date().toISOString(); // Fallback for invalid date strings
+        }
+        return parsedDate.toISOString();
     }
     if (dateValue instanceof Date) {
         return dateValue.toISOString();
     }
     // Fallback for other unexpected types
+    console.warn(`safeToISOString received an unexpected date type: ${typeof dateValue}`);
     return new Date().toISOString();
 };
 
 
 export async function getHistoryAction(userId: string): Promise<{ success: boolean; reports?: Report[]; assistantChat?: AssistantChat | null; error?: string; }> {
     if (!userId) {
-        console.log("getHistoryAction: No user ID provided.");
+        console.log("getHistoryAction: No user ID provided. Returning empty.");
         return { success: true, reports: [], assistantChat: null };
     }
+     if (!db) {
+        console.error("getHistoryAction: FATAL - Database service is not available. Returning empty.");
+        return { success: false, error: "Database service not available.", reports: [], assistantChat: null };
+    }
+
+    console.log(`getHistoryAction: Starting fetch for user ${userId}`);
+
     try {
         // Fetch all reports
         const reportsRef = db.collection('reports');
         const reportsQuery = reportsRef.where('userId', '==', userId);
         const reportsSnapshot = await reportsQuery.get();
+        console.log(`getHistoryAction: Found ${reportsSnapshot.docs.length} report documents for user.`);
         
         let reports: Report[] = [];
         reportsSnapshot.docs.forEach(doc => {
             try {
                 const data = doc.data();
+                if (!data) {
+                    console.warn(`getHistoryAction: Document ${doc.id} has no data. Skipping.`);
+                    return;
+                }
                 const reportItem = {
                     id: doc.id,
                     ...data,
                     createdAt: safeToISOString(data.createdAt),
-                    chatHistory: (data.chatHistory || []).map((msg: any) => ({
-                        ...msg,
-                        createdAt: safeToISOString(msg.createdAt)
-                    }))
+                    chatHistory: (data.chatHistory || []).map((msg: any, index: number) => {
+                         if (!msg.createdAt) {
+                            console.warn(`getHistoryAction: Message at index ${index} in report ${doc.id} is missing 'createdAt'.`);
+                         }
+                        return {
+                            ...msg,
+                            createdAt: safeToISOString(msg.createdAt)
+                        }
+                    })
                 } as unknown as Report;
                 reports.push(reportItem);
             } catch (mapError) {
-                console.error(`Error processing report doc ${doc.id}:`, mapError);
+                console.error(`getHistoryAction: Error processing report doc ${doc.id}:`, mapError);
                 // Skip this document if it causes an error
             }
         });
+        console.log(`getHistoryAction: Successfully processed ${reports.length} reports.`);
 
         // Sort in code instead of in the query
         reports.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
@@ -321,6 +363,7 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
         let assistantChat: AssistantChat | null = null;
 
         if (assistantChatDoc.exists) {
+            console.log(`getHistoryAction: Found active assistant chat for user.`);
             try {
                 const chatData = assistantChatDoc.data();
                 if (chatData) {
@@ -333,16 +376,20 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
                         createdAt: safeToISOString(chatData.createdAt),
                         updatedAt: safeToISOString(chatData.updatedAt),
                     } as unknown as AssistantChat;
+                    console.log(`getHistoryAction: Successfully processed active assistant chat.`);
                 }
             } catch (chatError) {
-                console.error(`Error processing assistant chat for user ${userId}:`, chatError);
+                console.error(`getHistoryAction: Error processing assistant chat for user ${userId}:`, chatError);
                 // assistantChat remains null
             }
+        } else {
+             console.log(`getHistoryAction: No active assistant chat found for user.`);
         }
 
+        console.log(`getHistoryAction: Fetch complete. Returning ${reports.length} reports and ${assistantChat ? 'an' : 'no'} assistant chat.`);
         return { success: true, reports, assistantChat };
     } catch (error) {
-        console.error('Error fetching history:', error);
+        console.error('getHistoryAction: A top-level error occurred during fetch:', error);
         return { success: false, error: 'Failed to fetch history.', reports: [], assistantChat: null };
     }
 }
@@ -351,6 +398,10 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
     if (!userId) {
         return { success: false, error: 'User not found' };
+    }
+    if (!db || !auth) {
+        console.error("getUserProfileAction: Database or auth service is not available.");
+        return { success: false, error: 'Server services not available.' };
     }
     try {
         const userRecord = await auth.getUser(userId);
@@ -387,6 +438,9 @@ export async function updateUserProfileAction(userId: string, data: { firstName:
     if (!userId) {
         return { success: false, error: 'User not found' };
     }
+    if (!db) {
+        return { success: false, error: 'Database service is not available.' };
+    }
     try {
         const userRef = db.collection('users').doc(userId);
         await userRef.update({
@@ -405,6 +459,10 @@ export async function updateUserProfileAction(userId: string, data: { firstName:
 
 
 export async function healthCheck(): Promise<boolean> {
+    if (!db) {
+        console.error("healthCheck: Database service is not available.");
+        return false;
+    }
     try {
         const docRef = db.collection('health_check').doc('status');
         await docRef.set({ status: 'ok', timestamp: FieldValue.serverTimestamp() });
@@ -415,5 +473,3 @@ export async function healthCheck(): Promise<boolean> {
         return false;
     }
 }
-
-    

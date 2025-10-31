@@ -2,35 +2,45 @@
 import admin from 'firebase-admin';
 import type { App } from 'firebase-admin/app';
 import { getApps } from 'firebase-admin/app';
-import path from 'path';
 import fs from 'fs';
 
-let adminApp: App;
+let adminApp: App | undefined;
 
-if (getApps().length === 0) {
-  const serviceAccountPath = path.resolve('./service-account.json');
-  
-  try {
-    if (fs.existsSync(serviceAccountPath)) {
-      adminApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccountPath)
-      });
-    } else {
-      console.warn("service-account.json not found, attempting to use Application Default Credentials.");
-      adminApp = admin.initializeApp({
-        credential: admin.credential.applicationDefault()
-      });
-    }
-  } catch (error) {
-    console.error('Firebase admin initialization error', error);
-    // We are not throwing the error here to avoid crashing the server
-    // The db and auth exports will be null, and handled in the actions/routes.
+function initializeAdminApp() {
+  if (getApps().length > 0) {
+    return admin.app();
   }
-} else {
-  adminApp = admin.app();
+
+  // Check for service account file for local development
+  const serviceAccountPath = './service-account.json';
+  if (fs.existsSync(serviceAccountPath)) {
+    console.log('Initializing Firebase Admin with service account file...');
+    return admin.initializeApp({
+      credential: admin.credential.cert(serviceAccountPath),
+    });
+  }
+
+  // Otherwise, use Application Default Credentials for cloud environments
+  console.log('Initializing Firebase Admin with Application Default Credentials...');
+  return admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+  });
 }
 
-const db = adminApp! ? admin.firestore(adminApp) : null;
-const auth = adminApp! ? admin.auth(adminApp) : null;
+try {
+  adminApp = initializeAdminApp();
+} catch (error) {
+  console.error('CRITICAL: Firebase admin initialization failed.', error);
+  // `adminApp` will be undefined, and subsequent db/auth calls will fail.
+}
+
+
+const db = adminApp ? admin.firestore() : null;
+const auth = adminApp ? admin.auth() : null;
+
+if (!db || !auth) {
+    console.warn("Firebase db or auth service is not available. Check initialization logs for errors.");
+}
+
 
 export { db, auth };
