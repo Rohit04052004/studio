@@ -68,7 +68,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
     (report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower)))
   );
   
-  const filteredReportAndArchivedChats = reports.filter(report => 
+  const allChatItems = reports.filter(report => 
     (report.chatHistory && report.chatHistory.length > 0) &&
     (
         (report.name && report.name.toLowerCase().includes(searchLower)) ||
@@ -85,7 +85,6 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
     }
   }
   
-  const allChatItems: (Report | AssistantChat)[] = [...filteredReportAndArchivedChats];
    if (filteredActiveAssistantChat) {
      if(!allChatItems.some(item => 'history' in item && 'userId' in item && item.userId === filteredActiveAssistantChat.userId && !('name' in item))) {
         allChatItems.unshift(filteredActiveAssistantChat);
