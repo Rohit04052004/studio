@@ -1,6 +1,7 @@
+
 'use server';
 /**
- * @fileOverview Summarizes medical reports (text or image) into concise, easy-to-understand summaries using AI.
+ * @fileOverview Summarizes one or more medical reports into a concise, easy-to-understand summary using AI.
  *
  * - summarizeMedicalReport - A function that takes medical report text or image data and returns a summary.
  * - SummarizeMedicalReportInput - The input type for the summarizeMedicalReport function.
@@ -11,17 +12,22 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import wav from 'wav';
 
-const SummarizeMedicalReportInputSchema = z.object({
+const ReportInputSchema = z.object({
   reportDataUri: z
     .string()
     .describe(
       "A medical report, either text or an image, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
+
+const SummarizeMedicalReportInputSchema = z.object({
+  reports: z.array(ReportInputSchema),
+});
+
 export type SummarizeMedicalReportInput = z.infer<typeof SummarizeMedicalReportInputSchema>;
 
 const SummarizeMedicalReportOutputSchema = z.object({
-  summary: z.string().describe('A concise, easy-to-understand summary of the medical report.'),
+  summary: z.string().describe('A concise, easy-to-understand summary of the medical report(s).'),
 });
 export type SummarizeMedicalReportOutput = z.infer<typeof SummarizeMedicalReportOutputSchema>;
 
@@ -33,9 +39,22 @@ const prompt = ai.definePrompt({
   name: 'summarizeMedicalReportPrompt',
   input: {schema: SummarizeMedicalReportInputSchema},
   output: {schema: SummarizeMedicalReportOutputSchema},
-  prompt: `You are a medical expert. Summarize the medical report below in a concise and easy to understand way, explaining any medical terms present.
+  prompt: `You are a medical expert. 
+  
+  Your task is to summarize the provided medical report(s) in a concise and easy-to-understand way, explaining any medical terms present.
 
-Medical Report: {{media url=reportDataUri}}`,
+  {{#if (eq reports.length 1)}}
+  Please summarize the following medical report.
+  {{else}}
+  Please provide a unified summary for the following {{reports.length}} medical reports. If possible, explain how they relate to each other and note any trends or changes over time.
+  {{/if}}
+
+  {{#each reports}}
+  Medical Report {{@index + 1}}:
+  {{media url=this.reportDataUri}}
+  ---
+  {{/each}}
+  `,
 });
 
 const summarizeMedicalReportFlow = ai.defineFlow(
@@ -49,3 +68,5 @@ const summarizeMedicalReportFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

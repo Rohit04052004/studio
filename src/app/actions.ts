@@ -11,38 +11,70 @@ import {
   answerReportQuestionsViaChat,
 } from '@/ai/flows/answer-report-questions-via-chat';
 import { healthAssistant } from '@/ai/flows/health-assistant-flow';
-import type { Report, Message, UserProfile, AssistantChat } from '@/types';
+import type { Report, Message, UserProfile, AssistantChat, SourceDocument } from '@/types';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db, auth } from '@/lib/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { format } from 'date-fns';
 
-export async function processReportAction(userId: string, reportDataUri: string, fileType: string, fileContent: string, fileName:string) {
+export async function processReportsAction(userId: string, reports: {name: string, dataUri: string}[]) {
   try {
-    const summaryResult = await summarizeMedicalReport({ reportDataUri });
-    const highlightedResult = await highlightAbnormalResults({ reportSummary: summaryResult.summary });
+    if (reports.length === 0) {
+      return { success: false, error: 'No reports provided.' };
+    }
+
+    let newReport: Partial<Report>;
     
-    const isImageFile = fileType.startsWith('image/');
+    // If only one report is uploaded, use the existing single-report logic
+    if (reports.length === 1) {
+      const { name, dataUri } = reports[0];
+      const isImageFile = dataUri.startsWith('data:image');
+      
+      const summaryResult = await summarizeMedicalReport({ reports: [{ reportDataUri: dataUri }] });
+      const highlightedResult = await highlightAbnormalResults({ reportSummary: summaryResult.summary });
+      
+      const fileContent = isImageFile ? dataUri : Buffer.from(dataUri.split(',')[1], 'base64').toString('utf-8');
 
-    const newReport: Partial<Report> = {
-      userId,
-      name: fileName,
-      type: isImageFile ? 'image' : 'text',
-      summary: summaryResult.summary,
-      highlightedSummary: highlightedResult.highlightedSummary,
-      chatHistory: [],
-      createdAt: FieldValue.serverTimestamp(),
-    };
-
-    if (isImageFile) {
-        newReport.content = reportDataUri;
-    } else { // Text file
+      newReport = {
+        userId,
+        name: name,
+        type: isImageFile ? 'image' : 'text',
+        summary: summaryResult.summary,
+        highlightedSummary: highlightedResult.highlightedSummary,
+        chatHistory: [],
+        createdAt: FieldValue.serverTimestamp(),
+      };
+      
+       if (isImageFile) {
+        newReport.content = fileContent;
+      } else {
         newReport.originalText = fileContent;
+      }
+
+    } else { // Multiple reports for a unified summary
+        const summaryResult = await summarizeMedicalReport({ reports: reports.map(r => ({ reportDataUri: r.dataUri })) });
+        const highlightedResult = await highlightAbnormalResults({ reportSummary: summaryResult.summary });
+
+        const sourceDocuments: SourceDocument[] = reports.map(r => ({
+            name: r.name,
+            content: r.dataUri,
+            type: r.dataUri.startsWith('data:image') ? 'image' : 'text',
+        }));
+
+        newReport = {
+            userId,
+            name: `Unified Summary of ${reports.length} Reports`,
+            type: 'summary',
+            summary: summaryResult.summary,
+            highlightedSummary: highlightedResult.highlightedSummary,
+            sourceDocuments,
+            chatHistory: [],
+            createdAt: FieldValue.serverTimestamp(),
+        };
     }
 
     const docRef = await db.collection('reports').add(newReport);
-    
     revalidatePath('/reports');
     revalidatePath('/history');
     
@@ -54,7 +86,6 @@ export async function processReportAction(userId: string, reportDataUri: string,
       report: { 
         ...createdReport, 
         id: docRef.id,
-        // Convert Timestamp to string for serialization
         createdAt: (createdReport.createdAt as unknown as Timestamp).toDate().toISOString(),
       } as Report,
     };
@@ -357,3 +388,6 @@ export async function healthCheck(): Promise<boolean> {
 
 
 
+
+
+    

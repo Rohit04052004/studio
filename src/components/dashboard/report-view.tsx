@@ -1,13 +1,13 @@
 
 'use client';
 
-import type { Report } from '@/types';
+import type { Report, SourceDocument } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import NextImage from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, FileText, Bot, Eye } from 'lucide-react';
+import { AlertCircle, FileText, Bot, Eye, Paperclip } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Markdown } from '../markdown';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,28 @@ import {
   DialogTrigger,
   DialogDescription
 } from '@/components/ui/dialog';
+
+const OriginalReportContent = ({ document }: { document: {name: string, content: string, type: 'text' | 'image'} }) => {
+     if (document.type === 'image') {
+        return (
+             <NextImage
+                src={document.content}
+                alt={document.name}
+                width={800}
+                height={1000}
+                className="rounded-md object-contain w-full h-auto"
+                data-ai-hint="medical scan"
+            />
+        )
+     }
+     // Decode if it's a data URI
+     const contentToShow = document.content.startsWith('data:') 
+        ? Buffer.from(document.content.split(',')[1], 'base64').toString()
+        : document.content;
+
+     return <pre className="whitespace-pre-wrap text-sm font-mono">{contentToShow}</pre>
+}
+
 
 export function ReportView({ report, isLoading }: { report: Report | null, isLoading: boolean }) {
   if (isLoading) {
@@ -51,6 +73,8 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
       </Card>
     );
   }
+  
+  const reportTypeDisplay = report.type.charAt(0).toUpperCase() + report.type.slice(1);
 
   return (
     <Card>
@@ -61,7 +85,7 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
                 <CardDescription>AI-Generated Analysis</CardDescription>
             </div>
             <Badge variant={report.type === 'text' ? 'secondary' : 'outline'}>
-                {report.type.charAt(0).toUpperCase() + report.type.slice(1)}
+                {reportTypeDisplay}
             </Badge>
         </div>
       </CardHeader>
@@ -92,35 +116,57 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
 
         <Separator />
         
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">
-                    <Eye className="mr-2 h-4 w-4" />
-                    Show Original Report
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>{report.name}</DialogTitle>
-                </DialogHeader>
-                <div className="flex-grow overflow-hidden">
-                    <ScrollArea className="h-full w-full rounded-md border p-4">
-                        {report.type === 'image' ? (
-                        <NextImage
-                            src={report.content!}
-                            alt={report.name}
-                            width={800}
-                            height={1000}
-                            className="rounded-md object-contain w-full h-auto"
-                            data-ai-hint="medical scan"
-                        />
-                        ) : (
-                        <pre className="whitespace-pre-wrap text-sm font-mono">{report.originalText || report.content}</pre>
-                        )}
-                    </ScrollArea>
-                </div>
-            </DialogContent>
-        </Dialog>
+        {report.type === 'summary' && report.sourceDocuments && (
+             <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                        <Paperclip className="mr-2 h-4 w-4" />
+                        View {report.sourceDocuments.length} Source Reports
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Source Reports</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-grow overflow-hidden">
+                        <ScrollArea className="h-full w-full rounded-md border p-4 space-y-4">
+                            {report.sourceDocuments.map((doc, index) => (
+                                <Card key={index}>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">{doc.name}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <OriginalReportContent document={doc} />
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </ScrollArea>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        )}
+        
+        {(report.type === 'text' || report.type === 'image') && (
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                        <Eye className="mr-2 h-4 w-4" />
+                        Show Original Report
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>{report.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-grow overflow-hidden">
+                        <ScrollArea className="h-full w-full rounded-md border p-4">
+                            <OriginalReportContent document={{name: report.name, content: (report.originalText || report.content)!, type: report.type}} />
+                        </ScrollArea>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        )}
+
 
         <div className="flex items-start space-x-2 rounded-lg border border-yellow-200/50 bg-yellow-950/30 p-3 text-yellow-200">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-yellow-400" />
@@ -132,3 +178,5 @@ export function ReportView({ report, isLoading }: { report: Report | null, isLoa
     </Card>
   );
 }
+
+    

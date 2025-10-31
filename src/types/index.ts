@@ -6,13 +6,20 @@ export type Message = {
   createdAt: Date | string;
 };
 
+export type SourceDocument = {
+  name: string;
+  type: 'text' | 'image';
+  content: string;
+}
+
 export type Report = {
   id: string;
   userId: string;
   name: string;
-  type: 'text' | 'image' | 'assistant';
+  type: 'text' | 'image' | 'assistant' | 'summary';
   content?: string; // data URI for images, raw text for text files, optional for assistant
   originalText?: string;
+  sourceDocuments?: SourceDocument[]; // Used for 'summary' type
   summary?: string;
   highlightedSummary?: string;
   chatHistory: Message[];
@@ -33,5 +40,7 @@ export type AssistantChat = {
   createdAt: Date | string;
   updatedAt: Date | string;
 };
+
+    
 
     
