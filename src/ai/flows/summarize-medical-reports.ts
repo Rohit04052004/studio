@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import wav from 'wav';
 
 const ReportInputSchema = z.object({
@@ -50,7 +50,7 @@ const prompt = ai.definePrompt({
   {{/if}}
 
   {{#each reports}}
-  Medical Report {{@index + 1}}:
+  Medical Report {{@index}}:
   {{media url=this.reportDataUri}}
   ---
   {{/each}}
