@@ -65,11 +65,11 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
   const filteredReports = reports.filter(report =>
     (report.name && report.name.toLowerCase().includes(searchLower)) ||
     (report.summary && report.summary.toLowerCase().includes(searchLower)) ||
-    (report.type === 'assistant' && report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower)))
+    (report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower)))
   );
   
   const filteredReportAndArchivedChats = reports.filter(report => 
-    report.chatHistory.length > 0 &&
+    (report.chatHistory && report.chatHistory.length > 0) &&
     (
         (report.name && report.name.toLowerCase().includes(searchLower)) ||
         report.chatHistory.some(m => m.content.toLowerCase().includes(searchLower))
@@ -93,6 +93,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
   }
 
   const reportsOnly = filteredReports.filter(r => r.type !== 'assistant');
+  const chatItemsCount = allChatItems.length;
 
   const handleCardClick = (item: Report | AssistantChat) => {
     setSelectedItem(item);
@@ -198,7 +199,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
               </TabsTrigger>
               <TabsTrigger value="chats">
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Chats ({allChatItems.length})
+                Chats ({chatItemsCount})
               </TabsTrigger>
             </TabsList>
 
@@ -265,13 +266,25 @@ function HistoryList({ items, onCardClick, onDeleteReport, onArchiveChat, isPend
 
 function ReportHistoryItem({ report, onCardClick, onDelete, isPending }: { report: Report, onCardClick: () => void, onDelete: () => void, isPending: boolean }) {
     const isArchivedChat = report.type === 'assistant';
-    const description = isArchivedChat 
-        ? "Archived AI health conversation." 
-        : "AI-generated summary and analysis.";
-    const firstUserMessage = report.chatHistory.find(m => m.role === 'user')?.content;
-    const content = isArchivedChat
-      ? `Started with: "${firstUserMessage?.substring(0, 70) || 'General questions'}${firstUserMessage && firstUserMessage.length > 70 ? '...' : ''}"`
-      : report.summary?.substring(0, 150) + (report.summary && report.summary.length > 150 ? '...' : '');
+    const isChat = report.chatHistory && report.chatHistory.length > 0;
+    
+    let title = report.name;
+    let icon = <FileText />;
+    let description = "AI-generated summary and analysis.";
+    let content = report.summary?.substring(0, 150) + (report.summary && report.summary.length > 150 ? '...' : '');
+
+    if (isArchivedChat) {
+        title = "Archived AI Health Assistant";
+        icon = <Bot />;
+        description = "Archived AI health conversation.";
+        const firstUserMessage = report.chatHistory.find(m => m.role === 'user')?.content;
+        content = `Started with: "${firstUserMessage?.substring(0, 70) || 'General questions'}${firstUserMessage && firstUserMessage.length > 70 ? '...' : ''}"`;
+    } else if (isChat) {
+        description = "Conversation about this report.";
+        const lastMessage = report.chatHistory[report.chatHistory.length - 1];
+        content = `${lastMessage.role === 'user' ? 'You' : 'AI'}: ${lastMessage.content.substring(0, 100)}...`;
+    }
+
 
     return (
         <Card className="hover:bg-muted/50 transition-colors flex flex-col">
@@ -279,8 +292,8 @@ function ReportHistoryItem({ report, onCardClick, onDelete, isPending }: { repor
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
-                            {isArchivedChat ? <Bot /> : <FileText />} 
-                            {report.name}
+                            {isChat ? <MessageSquare /> : icon} 
+                            {title}
                         </span>
                         <span className="text-sm font-normal text-muted-foreground">
                             <ClientFormattedRelativeTime date={report.createdAt} />
@@ -304,7 +317,7 @@ function ReportHistoryItem({ report, onCardClick, onDelete, isPending }: { repor
                         <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this report and its associated chat history.
+                            This action cannot be undone. This will permanently delete this item and its associated history.
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -396,3 +409,5 @@ function ChatHistory({ messages }: { messages: Message[] }) {
         </ScrollArea>
     )
 }
+
+    
