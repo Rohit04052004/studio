@@ -43,10 +43,10 @@ const prompt = ai.definePrompt({
   
   Your task is to summarize the provided medical report(s) in a concise and easy-to-understand way, explaining any medical terms present.
 
-  {{#if (eq reports.length 1)}}
-  Please summarize the following medical report.
-  {{else}}
+  {{#if reports.1}}
   Please provide a unified summary for the following {{reports.length}} medical reports. If possible, explain how they relate to each other and note any trends or changes over time.
+  {{else}}
+  Please summarize the following medical report.
   {{/if}}
 
   {{#each reports}}
