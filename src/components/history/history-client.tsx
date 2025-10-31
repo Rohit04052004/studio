@@ -57,6 +57,7 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<Report | AssistantChat | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isDebuggerOpen, setIsDebuggerOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -219,8 +220,16 @@ export function HistoryClient({ initialReports, initialAssistantChat }: HistoryC
             </TabsContent>
           </Tabs>
         </div>
-         <details className="mt-8">
-          <summary className="cursor-pointer text-sm text-muted-foreground">Debugger: Show Detailed Data</summary>
+         <details className="mt-8" open={isDebuggerOpen}>
+            <summary 
+                className="cursor-pointer text-sm text-muted-foreground"
+                onClick={(e) => {
+                    e.preventDefault();
+                    setIsDebuggerOpen(!isDebuggerOpen);
+                }}
+            >
+                Debugger: Show Detailed Data
+            </summary>
           <Card className="mt-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg"><Info/> Client-Side Debugger</CardTitle>
@@ -450,5 +459,3 @@ function ChatHistory({ messages }: { messages: Message[] }) {
         </ScrollArea>
     )
 }
-
-    
