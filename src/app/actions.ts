@@ -288,7 +288,7 @@ export async function getHistoryAction(userId: string): Promise<{ success: boole
         });
 
         // Sort in code instead of in the query
-        reports = reports.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+        reports.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
         
         // Fetch the current active assistant chat, if it exists
         const assistantChatRef = db.collection('assistantChats').doc(userId);
@@ -389,5 +389,7 @@ export async function healthCheck(): Promise<boolean> {
 
 
 
+
+    
 
     
