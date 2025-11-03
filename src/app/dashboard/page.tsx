@@ -180,7 +180,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -215,25 +215,6 @@ export default function DashboardPage() {
             <Button asChild className="w-full">
               <Link href="/reports">
                 Upload Report <ArrowRight />
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History />
-              History
-            </CardTitle>
-            <CardDescription>
-              View all your past reports and consultations in one place.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow" />
-          <CardFooter>
-            <Button asChild className="w-full">
-              <Link href="/history">
-                View History <ArrowRight />
               </Link>
             </Button>
           </CardFooter>

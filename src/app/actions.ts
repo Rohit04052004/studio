@@ -76,7 +76,6 @@ export async function processReportsAction(userId: string, reports: {name: strin
 
     const docRef = await db.collection('reports').add(newReport);
     revalidatePath('/reports');
-    revalidatePath('/history');
     
     const docSnap = await docRef.get();
     const createdReport = docSnap.data() as Report;
@@ -173,7 +172,6 @@ export async function archiveAssistantChatAction(userId: string) {
         }
         
         revalidatePath('/assistant');
-        revalidatePath('/history');
 
         return { success: true };
     } catch (error) {
@@ -194,7 +192,6 @@ export async function deleteReportAction(reportId: string) {
         await reportRef.delete();
         
         revalidatePath('/reports');
-        revalidatePath('/history');
 
         return { success: true };
     } catch (error) {
@@ -305,96 +302,6 @@ const safeToISOString = (dateValue: any): string => {
 };
 
 
-export async function getHistoryAction(userId: string): Promise<{ success: boolean; reports?: Report[]; assistantChat?: AssistantChat | null; error?: string; }> {
-    if (!userId) {
-        console.log("getHistoryAction: No user ID provided. Returning empty.");
-        return { success: true, reports: [], assistantChat: null };
-    }
-     if (!db) {
-        console.error("getHistoryAction: FATAL - Database service is not available. Returning empty.");
-        return { success: false, error: "Database service not available.", reports: [], assistantChat: null };
-    }
-
-    console.log(`getHistoryAction: Starting fetch for user ${userId}`);
-
-    try {
-        // Fetch all reports
-        const reportsRef = db.collection('reports');
-        const reportsQuery = reportsRef.where('userId', '==', userId);
-        const reportsSnapshot = await reportsQuery.get();
-        console.log(`getHistoryAction: Found ${reportsSnapshot.docs.length} report documents for user.`);
-        
-        let reports: Report[] = [];
-        reportsSnapshot.docs.forEach(doc => {
-            try {
-                const data = doc.data();
-                if (!data) {
-                    console.warn(`getHistoryAction: Document ${doc.id} has no data. Skipping.`);
-                    return;
-                }
-                const reportItem = {
-                    id: doc.id,
-                    ...data,
-                    createdAt: safeToISOString(data.createdAt),
-                    chatHistory: (data.chatHistory || []).map((msg: any, index: number) => {
-                         if (!msg.createdAt) {
-                            console.warn(`getHistoryAction: Message at index ${index} in report ${doc.id} is missing 'createdAt'.`);
-                         }
-                        return {
-                            ...msg,
-                            createdAt: safeToISOString(msg.createdAt)
-                        }
-                    })
-                } as unknown as Report;
-                reports.push(reportItem);
-            } catch (mapError) {
-                console.error(`getHistoryAction: Error processing report doc ${doc.id}:`, mapError);
-                // Skip this document if it causes an error
-            }
-        });
-        console.log(`getHistoryAction: Successfully processed ${reports.length} reports.`);
-
-        // Sort in code instead of in the query
-        reports.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
-        
-        // Fetch the current active assistant chat
-        const assistantChatRef = db.collection('assistantChats').doc(userId);
-        const assistantChatDoc = await assistantChatRef.get();
-        let assistantChat: AssistantChat | null = null;
-
-        if (assistantChatDoc.exists) {
-            console.log(`getHistoryAction: Found active assistant chat for user.`);
-            try {
-                const chatData = assistantChatDoc.data();
-                if (chatData) {
-                    assistantChat = {
-                        userId,
-                        history: (chatData.history || []).map((msg: any) => ({
-                             ...msg, 
-                             createdAt: safeToISOString(msg.createdAt) 
-                        })),
-                        createdAt: safeToISOString(chatData.createdAt),
-                        updatedAt: safeToISOString(chatData.updatedAt),
-                    } as unknown as AssistantChat;
-                    console.log(`getHistoryAction: Successfully processed active assistant chat.`);
-                }
-            } catch (chatError) {
-                console.error(`getHistoryAction: Error processing assistant chat for user ${userId}:`, chatError);
-                // assistantChat remains null
-            }
-        } else {
-             console.log(`getHistoryAction: No active assistant chat found for user.`);
-        }
-
-        console.log(`getHistoryAction: Fetch complete. Returning ${reports.length} reports and ${assistantChat ? 'an' : 'no'} assistant chat.`);
-        return { success: true, reports, assistantChat };
-    } catch (error) {
-        console.error('getHistoryAction: A top-level error occurred during fetch:', error);
-        return { success: false, error: 'Failed to fetch history.', reports: [], assistantChat: null };
-    }
-}
-
-
 export async function getUserProfileAction(userId: string): Promise<{ success: boolean; profile?: UserProfile; error?: string; }> {
     if (!userId) {
         return { success: false, error: 'User not found' };
@@ -473,3 +380,5 @@ export async function healthCheck(): Promise<boolean> {
         return false;
     }
 }
+
+    

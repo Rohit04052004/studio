@@ -36,7 +36,6 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/assistant', label: 'Assistant', icon: Bot },
   { href: '/reports', label: 'Reports', icon: FileText },
-  { href: '/history', label: 'History', icon: History },
 ];
 
 function UserProfileButton() {
@@ -195,3 +194,5 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
+    
