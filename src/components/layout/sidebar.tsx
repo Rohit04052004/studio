@@ -47,7 +47,8 @@ function UserProfileButton() {
     const handleLogout = async () => {
         try {
         await fetch('/api/auth/session', { method: 'DELETE' });
-        router.push('/');
+        // Instead of router.push, we refresh the page to ensure all state is cleared.
+        window.location.href = '/';
         } catch (error) {
         console.error('Logout failed', error);
         }
@@ -150,53 +151,41 @@ export function AppSidebar() {
       });
   }
 
-  // For unauthenticated users (e.g., on the landing page), show a minimal sidebar
-  if (!user) {
-     return (
-        <Sidebar className="hidden w-64 flex-col border-r bg-background p-4 sm:flex">
-            <SidebarHeader className="mb-8">
-                <Logo />
-            </SidebarHeader>
-             <SidebarFooter className="mt-auto">
-                <UserProfileButton />
-            </SidebarFooter>
-        </Sidebar>
-     );
-  }
-
   return (
     <Sidebar className="hidden w-64 flex-col border-r bg-background p-4 sm:flex">
        <SidebarHeader className="mb-8">
             <Logo />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu>
-        {navItems.map((item) => (
-          <SidebarMenuItem key={item.href} className="relative">
-             <Link href={item.href} className="flex-grow">
-                <SidebarMenuButton 
-                    isActive={pathname.startsWith(item.href)}
-                    className="justify-start w-full"
-                >
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {item.label}
-                </SidebarMenuButton>
-              </Link>
-             {item.href === '/assistant' && pathname.startsWith('/assistant') && (
-                 <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
-                    onClick={handleNewChat}
-                    disabled={isClearing}
-                 >
-                    {isClearing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
-                    <span className="sr-only">New Chat</span>
-                 </Button>
-            )}
-          </SidebarMenuItem>
-        ))}
-        </SidebarMenu>
+        {user && (
+            <SidebarMenu>
+            {navItems.map((item) => (
+            <SidebarMenuItem key={item.href} className="relative">
+                <Link href={item.href} className="flex-grow">
+                    <SidebarMenuButton 
+                        isActive={pathname.startsWith(item.href)}
+                        className="justify-start w-full"
+                    >
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {item.label}
+                    </SidebarMenuButton>
+                </Link>
+                {item.href === '/assistant' && pathname.startsWith('/assistant') && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                        onClick={handleNewChat}
+                        disabled={isClearing}
+                    >
+                        {isClearing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
+                        <span className="sr-only">New Chat</span>
+                    </Button>
+                )}
+            </SidebarMenuItem>
+            ))}
+            </SidebarMenu>
+        )}
       </SidebarContent>
        <SidebarFooter className="mt-auto">
         <UserProfileButton />
