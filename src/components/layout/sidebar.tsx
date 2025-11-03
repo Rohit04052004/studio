@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bot, FileText, History, LayoutDashboard, User, LogOut, Settings, ChevronsUpDown, PlusCircle, LoaderCircle } from 'lucide-react';
+import { Bot, FileText, History, LayoutDashboard, User, LogOut, Settings, ChevronsUpDown, PlusCircle, LoaderCircle,LogIn } from 'lucide-react';
 import {
   Sidebar,
   SidebarHeader,
@@ -53,15 +53,17 @@ function UserProfileButton() {
         console.error('Logout failed', error);
         }
     };
+    
+    const isLoading = authLoading || (user && profileLoading);
 
-    if (authLoading) {
+    if (isLoading) {
         return <Skeleton className="h-10 w-full" />;
     }
 
     if (!user) {
         return (
             <Button asChild className="w-full">
-                <Link href="/login">Sign In</Link>
+                <Link href="/login"><LogIn className="mr-2 h-4 w-4"/>Sign In</Link>
             </Button>
         );
     }
@@ -81,23 +83,14 @@ function UserProfileButton() {
                         <Avatar className="h-9 w-9">
                             <AvatarImage src={user.photoURL || `https://avatar.vercel.sh/${user.uid}.png`} alt={profile?.firstName || 'User'} data-ai-hint="person face" />
                             <AvatarFallback>
-                                {profileLoading ? <Skeleton className="h-9 w-9 rounded-full" /> : getInitials()}
+                                {getInitials()}
                             </AvatarFallback>
                         </Avatar>
                          <div className="flex-1 truncate">
-                             {profileLoading ? (
-                                <div className="space-y-1">
-                                    <Skeleton className="h-4 w-24" />
-                                    <Skeleton className="h-3 w-32" />
-                                </div>
-                            ) : (
-                                <>
-                                    <p className="text-sm font-medium leading-none truncate">{profile ? `${profile.firstName} ${profile.lastName}` : 'Anonymous User'}</p>
-                                    <p className="text-xs leading-none text-muted-foreground truncate">
-                                        {user.email}
-                                    </p>
-                                </>
-                            )}
+                            <p className="text-sm font-medium leading-none truncate">{profile ? `${profile.firstName} ${profile.lastName}` : 'Anonymous User'}</p>
+                            <p className="text-xs leading-none text-muted-foreground truncate">
+                                {user.email}
+                            </p>
                         </div>
                         <ChevronsUpDown className="h-4 w-4 text-muted-foreground ml-auto" />
                     </div>
@@ -144,7 +137,11 @@ export function AppSidebar() {
           if (result.success) {
               toast({ title: 'Success', description: 'New chat started. Old chat saved to history.' });
               // Force a reload of the page to reset the state
-              router.refresh();
+              if (pathname === '/assistant') {
+                router.refresh();
+              } else {
+                router.push('/assistant');
+              }
           } else {
               toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to start a new chat.' });
           }
@@ -170,7 +167,7 @@ export function AppSidebar() {
                     {item.label}
                     </SidebarMenuButton>
                 </Link>
-                {item.href === '/assistant' && pathname.startsWith('/assistant') && (
+                {item.href === '/assistant' && (
                     <Button
                         variant="ghost"
                         size="icon"
