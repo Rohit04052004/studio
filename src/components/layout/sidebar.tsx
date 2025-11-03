@@ -54,18 +54,23 @@ function UserProfileButton() {
         }
     };
     
-    const isLoading = authLoading || (user && profileLoading);
-
-    if (isLoading) {
+    // Show a skeleton while authentication status is being determined.
+    if (authLoading) {
         return <Skeleton className="h-10 w-full" />;
     }
 
+    // If not authenticated, show a clear Sign In button.
     if (!user) {
         return (
             <Button asChild className="w-full">
                 <Link href="/login"><LogIn className="mr-2 h-4 w-4"/>Sign In</Link>
             </Button>
         );
+    }
+    
+    // If authenticated, but profile is still loading, show another skeleton.
+    if (profileLoading) {
+        return <Skeleton className="h-10 w-full" />;
     }
     
     const getInitials = () => {
